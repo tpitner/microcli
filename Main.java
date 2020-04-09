@@ -15,12 +15,14 @@ public class Main {
 
     var greeting = new StringParameter("GREETING", "Hi", "Greeting at beginning");
     var farewell = new StringParameter("FAREWELL", "Bye", "Farewell at end");
-    var file = new PathParameter("INFILE", Path.of("in.txt"), "File to read");
+    //var file = new PathParameter("INFILE", Path.of("in.txt"), "File to read");
+    var num = new DoubleParameter("NUM", 1.2, "Number to process");
+    var howmany = new IntParameter("HOWMANY", 2, "How many");
 
     cli.add(verbose, help, count, prefix, add, path);
-    cli.add(greeting, farewell, file);
+    cli.add(greeting, farewell, num, howmany);
 
-    var arguments = new String[] { "-a", "100x.0", "--prefix", "### ", "--help", "-v", "-o", "::out-file.txt", "--count", "5c" , "-a", "1000", "param1", "param2", "input.txt" };
+    var arguments = new String[] { "-a", "100x.0", "--prefix", "### ", "--help", "-v", "-o", "::out-file.txt", "--count", "5c" , "-a", "1000", "param1", "param2", "7.8", "9" };
     System.out.println("Raw arguments " + Arrays.asList(arguments));
 
     cli.parse(arguments);

@@ -41,7 +41,7 @@ public class MicroCLI {
       index = -next;
       int paramIndex = 0;
       while (index < args.length && paramIndex < parameters.size()) {
-        System.out.println("Parsing param " + args[index]);
+        //System.out.println("Parsing param " + args[index]);
         Parameter p = parameters.get(paramIndex);
         index = p.match(args, index);
         paramIndex++;
