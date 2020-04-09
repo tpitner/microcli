@@ -18,18 +18,19 @@ public class MicroCLI {
   public void parse(String[] args) {
     int index = 0;
     while (index < args.length) {
+      // do for all args
       Iterator<Option> oi = options.iterator();
       int next = index;
       while (oi.hasNext()) {
+        // try whether next Option matches the arg
         Option o = oi.next();
-        //System.out.println("Try matching arg " + args[index] + " with " + o.name());
         next = o.match(args, index);
-        if(next > index) break;
+        if(next > index) break; // Option o matched this arg
       }
       if(next == index && !oi.hasNext()) throw new IllegalArgumentException(args[index]);  
       // shift to next argument if any
       index = next;
-    } // nothing left to parse
+    } // nothing left to match
   }
 
   public MicroCLI add(Option... o) {
