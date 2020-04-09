@@ -13,15 +13,22 @@ public class Main {
     var add = new DoubleOption("a", "add", "NUMBER", 10.0, "Constant to add to each number");
     var path = new PathOption("o", "out", "OUTFILE", Path.of("outfile.txt"), "File to save the result");
 
-    cli.add(verbose, help, count, prefix, add, path);
+    var greeting = new StringParameter("GREETING", "Hi", "Greeting at beginning");
+    var farewell = new StringParameter("FAREWELL", "Bye", "Farewell at end");
+    var file = new PathParameter("INFILE", Path.of("in.txt"), "File to read");
 
-    var arguments = new String[] { "-a", "100x.0", "--prefix", "### ", "--help", "-v", "-o", "::out-file.txt", "--count", "5c" , "-a", "1000"};
+    cli.add(verbose, help, count, prefix, add, path);
+    cli.add(greeting, farewell, file);
+
+    var arguments = new String[] { "-a", "100x.0", "--prefix", "### ", "--help", "-v", "-o", "::out-file.txt", "--count", "5c" , "-a", "1000", "param1", "param2", "input.txt" };
     System.out.println("Raw arguments " + Arrays.asList(arguments));
 
     cli.parse(arguments);
 
-    System.out.println("Parsed arguments " + cli.parsedOptions());
-
+    System.out.println("Parsed options " + cli.parsedOptions());
+    System.out.println("Parsed parameters " + cli.parsedParameters());
+    System.out.println();
+    
     if(help.isTrue()) cli.usage();
     if(path.valid()) System.out.println("Goes to file " + path.getPath());
 

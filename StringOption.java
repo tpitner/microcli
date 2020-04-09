@@ -25,8 +25,7 @@ public class StringOption extends UnaryOption {
     return String.valueOf(defaultData);
   }
 
-  @Override 
-  public String toString() {
+  @Override public String toString() {
     return "String(" + (params() == null ? "EMPTY" : "" + getString()) + ") " + name();
   }
 
