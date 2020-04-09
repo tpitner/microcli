@@ -47,6 +47,7 @@ if(count.valid()) { // was the option 'count' valid integer?
 ```
 
 ## Limitations
-- _MicroCLI_ accepts only exactly given number of parameters.
+- _MicroCLI_ accepts only fixed number of parameters.
+- Cannot specify `Option` without default value. Workaround: specify any value as default but always check `option.valid()` before using its data.
 
 ## Known bugs
