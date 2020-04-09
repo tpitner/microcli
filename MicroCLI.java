@@ -27,7 +27,7 @@ public class MicroCLI {
         if(next > index) break;
       }
       if(next == index && !oi.hasNext()) throw new IllegalArgumentException(args[index]);  
-      // shift to next argument
+      // shift to next argument if any
       index = next;
     } // nothing left to parse
   }
