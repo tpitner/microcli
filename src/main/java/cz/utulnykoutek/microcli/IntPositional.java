@@ -1,9 +1,11 @@
-public class IntParameter extends Parameter {
+package cz.utulnykoutek.microcli;
+
+public class IntPositional extends PositionalParameter {
 
   private int intData;
-  private int defaultData;
+  private final int defaultData;
 
-  public IntParameter(String name, int defaultData, String description) {
+  public IntPositional(String name, int defaultData, String description) {
     super(name, description);
     this.defaultData = defaultData;
   } 

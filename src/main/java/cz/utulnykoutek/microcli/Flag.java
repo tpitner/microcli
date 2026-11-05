@@ -1,6 +1,8 @@
-public class BooleanOption extends Option {
+package cz.utulnykoutek.microcli;
+
+public class Flag extends Option {
   
-  public BooleanOption(String name, String longName, String description) {
+  public Flag(String name, String longName, String description) {
     super(name, longName, 0, description);
   }
 

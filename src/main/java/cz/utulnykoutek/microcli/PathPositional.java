@@ -1,10 +1,12 @@
+package cz.utulnykoutek.microcli;
+
 import java.nio.file.Path;
 
-public class PathParameter extends Parameter {
+public class PathPositional extends PositionalParameter {
 
-  private Path defaultData;
+  private final Path defaultData;
 
-  public PathParameter(String name, Path defaultData, String description) {
+  public PathPositional(String name, Path defaultData, String description) {
     super(name, description);
     this.defaultData = defaultData;
   } 

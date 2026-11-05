@@ -1,7 +1,9 @@
+package cz.utulnykoutek.microcli;
+
 public class IntOption extends UnaryOption {
 
   private int data;
-  private int defaultData;
+  private final int defaultData;
 
   public IntOption(String name, String longName, String paramName, int defaultData, String description) {
     super(name, longName, paramName, description);

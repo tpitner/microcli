@@ -1,7 +1,9 @@
+package cz.utulnykoutek.microcli;
+
 public abstract class Argument implements Comparable<Argument> {
 
-  private String name;
-  private String description;
+  private final String name;
+  private final String description;
 
   public Argument(String name, String description) {
     this.name = name;

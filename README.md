@@ -3,13 +3,30 @@
 Ultra light-weight command line arguments parser and validator for Java
 
 ## Requirements
-- Java 8+
+- Java 27+ (Homebrew OpenJDK 27)
+- Maven 3.8+
+
+## Build
+
+This is a standard Maven project:
+
+```sh
+mvn clean package   # builds the JAR into target/
+mvn test            # runs the test suite
+java -jar target/microcli-*.jar   # runs the demo (Demo)
+```
+
+If JDK 27 is not your default, point Maven at the Homebrew JDK:
+
+```sh
+JAVA_HOME=$(brew --prefix openjdk) mvn clean package
+```
 
 ## Usage
 
 ### Create MicroCLI
 ```java
-var MicroCLI app = new MicroCLI("Usage of your application");
+MicroCLI app = new MicroCLI("Usage of your application");
 ```
 ### Create options
 ```java

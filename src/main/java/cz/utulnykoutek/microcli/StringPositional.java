@@ -1,8 +1,10 @@
-public class StringParameter extends Parameter {
+package cz.utulnykoutek.microcli;
 
-  private String defaultData;
+public class StringPositional extends PositionalParameter {
 
-  public StringParameter(String name, String defaultData, String description) {
+  private final String defaultData;
+
+  public StringPositional(String name, String defaultData, String description) {
     super(name, description);
     this.defaultData = defaultData;
   } 

@@ -1,7 +1,9 @@
+package cz.utulnykoutek.microcli;
+
 public class StringOption extends UnaryOption {
 
   private String data;
-  private String defaultData;
+  private final String defaultData;
 
   public StringOption(String name, String longName, String paramName, String defaultData, String description) {
     super(name, longName, paramName, description);

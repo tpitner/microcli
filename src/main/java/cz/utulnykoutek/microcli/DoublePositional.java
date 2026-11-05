@@ -1,9 +1,11 @@
-public class DoubleParameter extends Parameter {
+package cz.utulnykoutek.microcli;
+
+public class DoublePositional extends PositionalParameter {
 
   private double doubleData;
-  private double defaultData;
+  private final double defaultData;
 
-  public DoubleParameter(String name, double defaultData, String description) {
+  public DoublePositional(String name, double defaultData, String description) {
     super(name, description);
     this.defaultData = defaultData;
   } 

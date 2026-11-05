@@ -1,7 +1,9 @@
+package cz.utulnykoutek.microcli;
+
 public class DoubleOption extends UnaryOption {
 
   private double data;
-  private double defaultData;
+  private final double defaultData;
 
   public DoubleOption(String name, String longName, String paramName, double defaultData, String description) {
     super(name, longName, paramName, description);

@@ -1,8 +1,10 @@
+package cz.utulnykoutek.microcli;
+
 import java.nio.file.Path;
 public class PathOption extends UnaryOption {
 
   private Path data;
-  private Path defaultData; 
+  private final Path defaultData;
 
   public PathOption(String name, String longName, String paramName, Path defaultData, String description) {
     super(name, longName, paramName, description);

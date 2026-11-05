@@ -1,7 +1,9 @@
+package cz.utulnykoutek.microcli;
+
 public abstract class Option extends Argument {
 
-  private String longName;
-  private int arity;
+  private final String longName;
+  private final int arity;
 
   private String[] params;
   

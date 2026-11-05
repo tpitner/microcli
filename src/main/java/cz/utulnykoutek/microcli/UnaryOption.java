@@ -1,6 +1,8 @@
+package cz.utulnykoutek.microcli;
+
 public abstract class UnaryOption extends Option {
 
-  private String paramName;
+  private final String paramName;
 
   public UnaryOption(String name, String longName, String paramName, String description) {
     super(name, longName, 1, description);

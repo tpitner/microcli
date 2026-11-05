@@ -1,8 +1,10 @@
-public abstract class Parameter extends Argument {
+package cz.utulnykoutek.microcli;
+
+public abstract class PositionalParameter extends Argument {
 
   private String data;
   
-  public Parameter(String name, String description) {
+  public PositionalParameter(String name, String description) {
     super(name, description);
   } 
 

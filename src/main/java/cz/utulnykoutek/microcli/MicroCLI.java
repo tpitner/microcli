@@ -1,3 +1,5 @@
+package cz.utulnykoutek.microcli;
+
 import java.util.SortedSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -5,14 +7,13 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 public class MicroCLI {
 
   private String usage;
   private SortedSet<Option> options = new TreeSet<Option>();
-  private List<Parameter> parameters = new ArrayList<Parameter>();
+  private List<PositionalParameter> positionalParameters = new ArrayList<PositionalParameter>();
 
   public MicroCLI(String usage) {
     this.usage = usage;
@@ -37,12 +38,12 @@ public class MicroCLI {
       index = next;
     } // nothing left to match
     if(next < 0) { 
-      // was parameter, not parse parameters
+      // was parameter, not parse positionalParameters
       index = -next;
       int paramIndex = 0;
-      while (index < args.length && paramIndex < parameters.size()) {
+      while (index < args.length && paramIndex < positionalParameters.size()) {
         //System.out.println("Parsing param " + args[index]);
-        Parameter p = parameters.get(paramIndex);
+        PositionalParameter p = positionalParameters.get(paramIndex);
         index = p.match(args, index);
         paramIndex++;
       }
@@ -54,8 +55,8 @@ public class MicroCLI {
     return this;
   }
 
-  public MicroCLI add(Parameter... o) {
-    parameters.addAll(Arrays.asList(o));
+  public MicroCLI add(PositionalParameter... o) {
+    positionalParameters.addAll(Arrays.asList(o));
     return this;
   }
 
@@ -63,13 +64,13 @@ public class MicroCLI {
     return options.stream().filter(o -> o.isParsed()).collect(Collectors.toUnmodifiableSet());
   }
 
-  public List<Parameter> parsedParameters() {
-    return parameters.stream().filter(o -> o.isParsed()).collect(Collectors.toUnmodifiableList());
+  public List<PositionalParameter> parsedParameters() {
+    return positionalParameters.stream().filter(o -> o.isParsed()).collect(Collectors.toUnmodifiableList());
   }
 
   public void usage() {
     System.out.println(usage + "\nUsage:");
     options.forEach(o -> o.usage());
-    parameters.forEach(o -> o.usage());
+    positionalParameters.forEach(o -> o.usage());
   }
 }
