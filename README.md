@@ -36,16 +36,43 @@ used to read values and is completely independent of the command-line names:
 
 ```java
 var verboseOpt = new Flag("verbose", "v", "verbose", "Produces verbose info during processing");
-var countOpt = new IntOption("itemCount", "c", "count", "COUNT", 2, "Count of numbers to print");
-var filePar = new PathPositional("infile", "INFILE", Path.of("in.txt"), "File to read");
+var countOpt = new ValuedOption<>("itemCount", "c", "count", "COUNT",
+    Integer.class, 2, "Count of numbers to print");
+var filePar = new PositionalParameter<>("infile", "INFILE",
+    Path.class, Path.of("in.txt"), "File to read");
 ```
 
 Here `itemCount` is the ID, while `-c` and `--count` are the CLI names. The
 constructor layouts are:
 
 - `Flag(id, shortName, longName, description)`
-- unary option: `(id, shortName, longName, paramName, defaultValue, description)`
-- positional parameter: `(id, displayName, defaultValue, description)`
+- `ValuedOption(id, shortName, longName, paramName, type, defaultValue, description)`
+- `ValuedOption(id, shortName, longName, paramName, type, parser, defaultValue, description)` for custom types
+- `PositionalParameter(id, displayName, type, defaultValue, description)`
+- `PositionalParameter(id, displayName, type, parser, defaultValue, description)` for custom types
+
+The type token is mandatory. It is used for validation and to choose the
+built-in parser:
+
+| Type | Parser |
+| --- | --- |
+| `Integer.class` | `Integer::valueOf` |
+| `Double.class` | `Double::valueOf` |
+| `String.class` | identity |
+| `Path.class` | `Path::of` |
+| `Boolean.class` | `Boolean::valueOf` |
+
+For other types, pass a parser explicitly:
+
+```java
+var dateOpt = new ValuedOption<>("date", "d", "date", "DATE",
+    LocalDate.class, LocalDate::parse, LocalDate.now(), "Date to process");
+var datePar = new PositionalParameter<>("start", "START",
+    LocalDate.class, LocalDate::parse, LocalDate.now(), "Start date");
+```
+
+`null` default values are allowed only for `String` and `Path`. Numeric
+arguments need a non-null default value.
 
 ### Add options and parameters
 ```java
@@ -59,6 +86,18 @@ app.add(filePar);
 app.parse(args);
 ```
 
+Values are validated during parsing. If an argument is present but its value
+cannot be converted to the declared type, `parse` fails fast:
+
+```java
+app.parse(new String[]{"--count", "abc"});
+// IllegalArgumentException: Invalid value for argument 'itemCount':
+// 'abc' is not a valid Integer value
+```
+
+Defaults are used only when the argument is missing, not as a fallback for an
+invalid value.
+
 ### Read values by ID (or defaults)
 ```java
 boolean verbose = app.getFlag("verbose");
@@ -66,19 +105,28 @@ int count = app.getInt("itemCount");
 Path file = app.getPath("infile");
 ```
 
-The typed getters on the original objects still work as well:
+The generic argument object exposes the same typed value:
 
 ```java
-int count = countOpt.getInt();
+int count = countOpt.get();
+Class<Integer> type = countOpt.type();
+```
+
+You can also ask for any type explicitly:
+
+```java
+int count = app.get("itemCount", Integer.class);
 ```
 
 ### Check whether the values are present and valid
 ```java
-if(app.isValid("itemCount")) { // was the value a valid integer?
- ...
-}
 boolean present = app.isParsed("itemCount");
+boolean valid = app.isValid("itemCount");
 ```
+
+After a successful `parse`, every present argument is valid. `isValid` is false
+for a missing argument. If you work with an argument object directly, its
+`valid()` method still reflects whether its raw value can be parsed.
 
 ### Look up an argument by ID
 ```java
@@ -92,8 +140,10 @@ with `IllegalArgumentException`.
 
 ## Limitations
 - _MicroCLI_ accepts only a fixed number of positional parameters.
-- Cannot specify `Option` without a default value. Workaround: specify any value as default but always check `isValid(id)` before using its data.
+- Numeric options and positional parameters need a non-null default value.
+  `String` and `Path` arguments may use `null`.
 - Option values must be separate tokens; `--count=5` is not supported.
 - Combined short flags such as `-abc` are not supported.
+- Invalid values of present arguments abort parsing with `IllegalArgumentException`.
 
 ## Known bugs

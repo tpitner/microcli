@@ -2,7 +2,6 @@ package cz.utulnykoutek.microcli;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,27 +12,27 @@ import java.util.stream.Collectors;
 public class MicroCLI {
 
   private final String usage;
-  private final List<Option> options = new ArrayList<>();
-  private final List<PositionalParameter> positionalParameters = new ArrayList<>();
+  private final List<Option<?>> options = new ArrayList<>();
+  private final List<PositionalParameter<?>> positionalParameters = new ArrayList<>();
   private final Map<String, Argument> argumentsById = new LinkedHashMap<>();
-  private final Map<String, Option> optionsByShortName = new LinkedHashMap<>();
-  private final Map<String, Option> optionsByLongName = new LinkedHashMap<>();
+  private final Map<String, Option<?>> optionsByShortName = new LinkedHashMap<>();
+  private final Map<String, Option<?>> optionsByLongName = new LinkedHashMap<>();
 
   public MicroCLI(String usage) {
     this.usage = usage;
   }
 
   public void parse(String[] args) {
+    if(args == null) throw new NullPointerException("Arguments cannot be null");
     int index = 0;
     boolean positionals = false;
 
-    parseOptions: while (index < args.length) {
-      Iterator<Option> oi = options.iterator();
+    parseOptions:
+    while (index < args.length) {
       int next = index;
 
-      while (oi.hasNext()) {
-        Option o = oi.next();
-        next = o.match(args, index);
+      for (Option<?> option : options) {
+        next = option.match(args, index);
         if(next < 0) {
           positionals = true;
           break parseOptions;
@@ -44,7 +43,7 @@ public class MicroCLI {
       if(next == index) {
         if(!args[index].startsWith("-")) {
           positionals = true;
-          break parseOptions;
+          break;
         }
         throw new IllegalArgumentException("Unknown option: " + args[index]);
       }
@@ -54,24 +53,39 @@ public class MicroCLI {
 
     if(positionals) {
       int paramIndex = 0;
-      while (index < args.length && paramIndex < positionalParameters.size()) {
-        PositionalParameter p = positionalParameters.get(paramIndex);
-        index = p.match(args, index);
+      while(index < args.length && paramIndex < positionalParameters.size()) {
+        PositionalParameter<?> parameter = positionalParameters.get(paramIndex);
+        index = parameter.match(args, index);
         paramIndex++;
       }
     }
+
+    validateParsedArguments();
   }
 
-  public MicroCLI add(Option... opts) {
-    for (Option option : opts) {
+  private void validateParsedArguments() {
+    for (Argument argument : argumentsById.values()) {
+      if(!argument.isParsed() || argument.valid()) continue;
+
+      if(argument instanceof TypedArgument<?> typed) {
+        throw new IllegalArgumentException("Invalid value for argument '" + argument.id()
+            + "': '" + typed.rawValue() + "' is not a valid "
+            + typed.type().getSimpleName() + " value");
+      }
+      throw new IllegalArgumentException("Invalid value for argument '" + argument.id() + "'");
+    }
+  }
+
+  public MicroCLI add(Option<?>... opts) {
+    for (Option<?> option : opts) {
       register(option);
       options.add(option);
     }
     return this;
   }
 
-  public MicroCLI add(PositionalParameter... params) {
-    for (PositionalParameter parameter : params) {
+  public MicroCLI add(PositionalParameter<?>... params) {
+    for (PositionalParameter<?> parameter : params) {
       register(parameter);
       positionalParameters.add(parameter);
     }
@@ -82,7 +96,7 @@ public class MicroCLI {
     if(argumentsById.containsKey(argument.id())) {
       throw new IllegalArgumentException("Duplicate argument id: " + argument.id());
     }
-    if(argument instanceof Option option) {
+    if(argument instanceof Option<?> option) {
       if(optionsByShortName.containsKey(option.shortName())) {
         throw new IllegalArgumentException("Duplicate option short name: -" + option.shortName());
       }
@@ -92,7 +106,7 @@ public class MicroCLI {
     }
 
     argumentsById.put(argument.id(), argument);
-    if(argument instanceof Option option) {
+    if(argument instanceof Option<?> option) {
       optionsByShortName.put(option.shortName(), option);
       optionsByLongName.put(option.longName(), option);
     }
@@ -113,7 +127,12 @@ public class MicroCLI {
 
   public <T> T get(String id, Class<T> type) {
     if(type == null) throw new NullPointerException("Value type cannot be null");
-    Object value = get(id).value();
+    Argument argument = get(id);
+    if(argument instanceof TypedArgument<?> typed && !type.isAssignableFrom(typed.type())) {
+      throw new IllegalArgumentException("Argument '" + id + "' has declared type "
+          + typed.type().getName() + ", not " + type.getName());
+    }
+    Object value = argument.value();
     if(value == null) return null;
     if(!type.isInstance(value)) {
       throw new IllegalArgumentException("Argument '" + id + "' has value type "
@@ -140,12 +159,12 @@ public class MicroCLI {
     return find(id).map(Argument::valid).orElse(false);
   }
 
-  public Set<Option> parsedOptions() {
+  public Set<Option<?>> parsedOptions() {
     return options.stream().filter(Argument::isParsed).collect(Collectors.toUnmodifiableSet());
   }
 
-  public List<PositionalParameter> parsedParameters() {
-    return positionalParameters.stream().filter(Argument::isParsed).collect(Collectors.toUnmodifiableList());
+  public List<PositionalParameter<?>> parsedParameters() {
+    return positionalParameters.stream().filter(Argument::isParsed).toList();
   }
 
   public void usage() {
