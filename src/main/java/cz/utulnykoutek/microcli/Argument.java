@@ -2,11 +2,11 @@ package cz.utulnykoutek.microcli;
 
 public abstract class Argument implements Comparable<Argument> {
 
-  private final String name;
+  private final String id;
   private final String description;
 
-  public Argument(String name, String description) {
-    this.name = name;
+  public Argument(String id, String description) {
+    this.id = requireNotNullBlank(id, "Argument id cannot be null or blank");
     this.description = description;
   }
 
@@ -16,6 +16,8 @@ public abstract class Argument implements Comparable<Argument> {
 
   public abstract boolean valid();
 
+  public abstract Object value();
+
   public String checkArg(String[] args, int index) {
     requireNotNullEmpty(args, "Arguments cannot be null or empty");
     requireInRange(args, index, "Not enough arguments");
@@ -24,12 +26,13 @@ public abstract class Argument implements Comparable<Argument> {
     return arg;
   }
 
-  public String name() { return name; }
+  public String id() { return id; }
   public String description() { return description; }
 
-  public static void requireNotNullBlank(String s, String message) {
+  public static String requireNotNullBlank(String s, String message) {
     if(s == null) throw new NullPointerException(message);
     if(s.isBlank()) throw new IllegalArgumentException(message);
+    return s;
   }
 
   public static void requireNotNullEmpty(Object[] a, String message) {
@@ -43,19 +46,16 @@ public abstract class Argument implements Comparable<Argument> {
 
   @Override
   public int compareTo(Argument o) {
-    return name().compareTo(o.name());
-  } 
-
-  @Override
-  public boolean equals(Object o) {
-    if(o != null && this.getClass() == o.getClass()) {
-      return this.name().equals(((Option)o).name());
-    } 
-    return false;
+    return id().compareTo(o.id());
   }
 
   @Override
-  public int hashCode() { return name().hashCode(); }
+  public boolean equals(Object o) {
+    return o instanceof Argument other && id().equals(other.id());
+  }
+
+  @Override
+  public int hashCode() { return id().hashCode(); }
 
   public abstract void usage();
 }

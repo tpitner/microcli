@@ -5,8 +5,8 @@ public class IntOption extends UnaryOption {
   private int data;
   private final int defaultData;
 
-  public IntOption(String name, String longName, String paramName, int defaultData, String description) {
-    super(name, longName, paramName, description);
+  public IntOption(String id, String shortName, String longName, String paramName, int defaultData, String description) {
+    super(id, shortName, longName, paramName, description);
     this.defaultData = defaultData;
   }
 
@@ -14,21 +14,23 @@ public class IntOption extends UnaryOption {
     return valid() ? data : defaultData;
   }
 
-  @Override public boolean valid() { 
+  @Override public boolean valid() {
     try {
       data = Integer.parseInt(params()[0]);
     } catch(RuntimeException re) {
       return false;
     }
-    return true; 
+    return true;
   }
+
+  @Override public Object value() { return getInt(); }
 
   @Override public String defaultData() {
     return String.valueOf(defaultData);
   }
 
-  @Override 
+  @Override
   public String toString() {
-    return "int(" + (params() == null ? "EMPTY" : "" + getInt()) + ") " + name();
+    return "int(" + (params() == null ? "EMPTY" : "" + getInt()) + ") " + id();
   }
 }

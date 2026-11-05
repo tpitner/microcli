@@ -5,8 +5,8 @@ public class StringOption extends UnaryOption {
   private String data;
   private final String defaultData;
 
-  public StringOption(String name, String longName, String paramName, String defaultData, String description) {
-    super(name, longName, paramName, description);
+  public StringOption(String id, String shortName, String longName, String paramName, String defaultData, String description) {
+    super(id, shortName, longName, paramName, description);
     this.defaultData = defaultData;
   }
 
@@ -14,24 +14,27 @@ public class StringOption extends UnaryOption {
     return valid() ? data : defaultData;
   }
 
-  @Override public boolean valid() { 
+  @Override public boolean valid() {
     try {
       data = params()[0];
     } catch(RuntimeException re) {
       return false;
     }
-    return true; 
+    return true;
   }
+
+  @Override public Object value() { return getString(); }
 
   @Override public String defaultData() {
     return String.valueOf(defaultData);
   }
 
-  @Override public String toString() {
-    return "String(" + (params() == null ? "EMPTY" : "" + getString()) + ") " + name();
+  @Override
+  public String toString() {
+    return "String(" + (params() == null ? "EMPTY" : "" + getString()) + ") " + id();
   }
 
   @Override public void usage() {
-    System.out.println("-" + name() + "\t" + "--" + longName() + "\t<" + paramName() + ">\t default: \"" + defaultData() + "\"\t" + description());
+    System.out.println("-" + shortName() + "\t" + "--" + longName() + "\t<" + paramName() + ">\t default: \"" + defaultData() + "\"\t" + description());
   }
 }

@@ -28,18 +28,26 @@ JAVA_HOME=$(brew --prefix openjdk) mvn clean package
 ```java
 MicroCLI app = new MicroCLI("Usage of your application");
 ```
-### Create options
+
+### Create options and parameters
+
+Every option and positional parameter has a mandatory, unique **ID**. The ID is
+used to read values and is completely independent of the command-line names:
+
 ```java
-var verboseOpt = new BooleanOption("v", "verbose", "Produces verbose info during processing");
-var countOpt = new IntOption("c", "count", "COUNT", 2, "Count of numbers to print");
+var verboseOpt = new Flag("verbose", "v", "verbose", "Produces verbose info during processing");
+var countOpt = new IntOption("itemCount", "c", "count", "COUNT", 2, "Count of numbers to print");
+var filePar = new PathPositional("infile", "INFILE", Path.of("in.txt"), "File to read");
 ```
 
-### Create parameters
-```java
-var filePar = new PathParameter("INFILE", Path.of("in.txt"), "File to read");
-```
+Here `itemCount` is the ID, while `-c` and `--count` are the CLI names. The
+constructor layouts are:
 
-### Add options
+- `Flag(id, shortName, longName, description)`
+- unary option: `(id, shortName, longName, paramName, defaultValue, description)`
+- positional parameter: `(id, displayName, defaultValue, description)`
+
+### Add options and parameters
 ```java
 app.add(verboseOpt, countOpt);
 // add parameters
@@ -50,21 +58,42 @@ app.add(filePar);
 ```java
 app.parse(args);
 ```
-### Read values (or defaults)
+
+### Read values by ID (or defaults)
 ```java
-boolean verbose = verboseOpt.isTrue();
-int count = countOpt.getInt();
-Path file = filePar.getPath();
-```
-### Check whether the options/params read are valid
-```java
-if(count.valid()) { // was the option 'count' valid integer?
- ...
-} 
+boolean verbose = app.getFlag("verbose");
+int count = app.getInt("itemCount");
+Path file = app.getPath("infile");
 ```
 
+The typed getters on the original objects still work as well:
+
+```java
+int count = countOpt.getInt();
+```
+
+### Check whether the values are present and valid
+```java
+if(app.isValid("itemCount")) { // was the value a valid integer?
+ ...
+}
+boolean present = app.isParsed("itemCount");
+```
+
+### Look up an argument by ID
+```java
+Optional<Argument> argument = app.find("itemCount");
+Argument required = app.get("itemCount"); // throws for an unknown ID
+```
+
+IDs must be unique across all options and positional parameters; short names
+and long names must be unique among options. Duplicate registrations fail fast
+with `IllegalArgumentException`.
+
 ## Limitations
-- _MicroCLI_ accepts only fixed number of parameters.
-- Cannot specify `Option` without default value. Workaround: specify any value as default but always check `option.valid()` before using its data.
+- _MicroCLI_ accepts only a fixed number of positional parameters.
+- Cannot specify `Option` without a default value. Workaround: specify any value as default but always check `isValid(id)` before using its data.
+- Option values must be separate tokens; `--count=5` is not supported.
+- Combined short flags such as `-abc` are not supported.
 
 ## Known bugs
