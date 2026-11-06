@@ -405,6 +405,25 @@ live in `cz.utulnykoutek.microcli.theme`:
 `new Style()` and `new Theme()` are **plain**: they emit no ANSI sequences, so
 text is printed exactly as before.
 
+A theme can carry an optional name, which is useful for logging and for
+configuration:
+
+```java
+new Theme()              // plain, name "plain"
+new Theme("Dark")        // empty theme named "Dark"
+new Theme("Dark", styles) // full theme named "Dark"
+```
+
+The name and the underlying styles are available through:
+
+```java
+String name = theme.name();
+Map<String, Style> styles = theme.styles(); // unmodifiable
+```
+
+`withStyle` and `withoutColors` preserve the theme name; `withoutColors` only
+drops the styles.
+
 ### Define a theme
 
 ```java
