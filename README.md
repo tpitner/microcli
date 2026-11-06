@@ -98,6 +98,15 @@ app.parse(new String[]{"--count", "abc"});
 Defaults are used only when the argument is missing, not as a fallback for an
 invalid value.
 
+`--` terminates argument parsing; everything after it is silently ignored. Only
+the registered number of positional parameters may appear before `--`; any
+extra positional argument fails fast:
+
+```java
+app.parse(new String[]{"input.txt", "--", "-v", "ignored"});
+// "-v" and "ignored" are ignored
+```
+
 ### Read values by ID (or defaults)
 ```java
 boolean verbose = app.getFlag("verbose");
@@ -139,7 +148,8 @@ and long names must be unique among options. Duplicate registrations fail fast
 with `IllegalArgumentException`.
 
 ## Limitations
-- _MicroCLI_ accepts only a fixed number of positional parameters.
+- _MicroCLI_ accepts only a fixed number of positional parameters. Extra
+  positional arguments before `--` fail fast.
 - Numeric options and positional parameters need a non-null default value.
   `String` and `Path` arguments may use `null`.
 - Option values must be separate tokens; `--count=5` is not supported.

@@ -29,6 +29,8 @@ public class MicroCLI {
 
     parseOptions:
     while (index < args.length) {
+      if(isArgumentTerminator(args[index])) break;
+
       int next = index;
 
       for (Option<?> option : options) {
@@ -53,7 +55,11 @@ public class MicroCLI {
 
     if(positionals) {
       int paramIndex = 0;
-      while(index < args.length && paramIndex < positionalParameters.size()) {
+      while(index < args.length && !isArgumentTerminator(args[index])) {
+        if(paramIndex >= positionalParameters.size()) {
+          throw new IllegalArgumentException(
+              "Unexpected positional argument: " + args[index]);
+        }
         PositionalParameter<?> parameter = positionalParameters.get(paramIndex);
         index = parameter.match(args, index);
         paramIndex++;
@@ -61,6 +67,10 @@ public class MicroCLI {
     }
 
     validateParsedArguments();
+  }
+
+  private static boolean isArgumentTerminator(String arg) {
+    return "--".equals(arg);
   }
 
   private void validateParsedArguments() {

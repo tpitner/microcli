@@ -95,6 +95,70 @@ class MicroCLITest {
   }
 
   @Test
+  void treatsDoubleDashAsTerminatorAndIgnoresTheRest() {
+    var cli = new MicroCLI("test")
+        .add(
+            new Flag("verbose", "v", "verbose", "Verbose"),
+            new ValuedOption<>("itemCount", "c", "count", "COUNT",
+                Integer.class, 2, "Number of items"))
+        .add(new PositionalParameter<>("name", "NAME", String.class, "default", "Name"));
+
+    cli.parse(new String[]{"-v", "--", "--count", "not-a-number", "Ada"});
+
+    assertTrue(cli.getFlag("verbose"));
+    assertEquals(2, cli.getInt("itemCount"));
+    assertFalse(cli.isParsed("name"));
+    assertEquals("default", cli.getString("name"));
+  }
+
+  @Test
+  void stopsPositionalParsingAtTerminator() {
+    var cli = new MicroCLI("test")
+        .add(new PositionalParameter<>("name", "NAME", String.class, "default", "Name"));
+
+    cli.parse(new String[]{"Ada", "--", "Bob", "Cid"});
+
+    assertEquals("Ada", cli.getString("name"));
+  }
+
+  @Test
+  void rejectsExtraPositionalParametersBeforeTerminator() {
+    var cli = new MicroCLI("test")
+        .add(new PositionalParameter<>("name", "NAME", String.class, "default", "Name"));
+
+    var ex = assertThrows(IllegalArgumentException.class,
+        () -> cli.parse(new String[]{"Ada", "Bob", "--", "Cid"}));
+
+    assertTrue(ex.getMessage().contains("Unexpected positional argument"));
+    assertTrue(ex.getMessage().contains("Bob"));
+    assertEquals("Ada", cli.getString("name"));
+
+    assertThrows(IllegalArgumentException.class,
+        () -> cli.parse(new String[]{"Ada", "Bob"}));
+  }
+
+  @Test
+  void acceptsTerminatorWithNoRegisteredPositionalParameters() {
+    var cli = new MicroCLI("test").add(new Flag("verbose", "v", "verbose", "Verbose"));
+
+    assertDoesNotThrow(() -> cli.parse(new String[]{"--", "-v", "ignored"}));
+
+    assertFalse(cli.getFlag("verbose"));
+  }
+
+  @Test
+  void stillValidatesArgumentsBeforeTerminator() {
+    var cli = new MicroCLI("test")
+        .add(new ValuedOption<>("itemCount", "c", "count", "COUNT",
+            Integer.class, 2, "Number of items"));
+
+    var ex = assertThrows(IllegalArgumentException.class,
+        () -> cli.parse(new String[]{"--count", "bad", "--", "ignored"}));
+
+    assertTrue(ex.getMessage().contains("itemCount"));
+  }
+
+  @Test
   void rejectsMissingOptionValues() {
     var cli = new MicroCLI("test")
         .add(new ValuedOption<>("itemCount", "c", "count", "COUNT",
