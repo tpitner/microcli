@@ -1,5 +1,9 @@
 package cz.utulnykoutek.microcli;
 
+import cz.utulnykoutek.microcli.theme.Theme;
+
+import java.io.PrintStream;
+
 public class Flag extends Option<Boolean> {
 
   public Flag(String id, String shortName, String longName, String description) {
@@ -16,6 +20,11 @@ public class Flag extends Option<Boolean> {
   }
 
   @Override public void usage() {
-    System.out.println(names() + "\t" + description());
+    usage(System.out, new Theme());
+  }
+
+  @Override public void usage(PrintStream out, Theme theme) {
+    out.println(theme.paint("option", names()) + "\t"
+        + theme.paint("description", description()));
   }
 }

@@ -385,6 +385,95 @@ if (app.isFlag("help")) {
 }
 ```
 
+Use `usage(PrintStream)` to send the help to another stream:
+
+```java
+app.usage(System.err);
+```
+
+## Themes and colors
+
+Colored output is optional and has no external dependencies. Three small types
+live in `cz.utulnykoutek.microcli.theme`:
+
+- `Color` – a sealed interface with `Color.Ansi` (16 standard colors) and
+  `Color.Rgb` (24-bit truecolor)
+- `Style` – foreground/background color plus `bold`, `dim`, `italic`, and
+  `underline`
+- `Theme` – an immutable map from a string tag to a `Style`
+
+`new Style()` and `new Theme()` are **plain**: they emit no ANSI sequences, so
+text is printed exactly as before.
+
+### Define a theme
+
+```java
+import cz.utulnykoutek.microcli.theme.Color;
+import cz.utulnykoutek.microcli.theme.Style;
+import cz.utulnykoutek.microcli.theme.Theme;
+
+var theme = new Theme()
+    .with("title", new Style(Color.Ansi.BRIGHT_WHITE).bold())
+    .with("heading", new Style(Color.Ansi.BRIGHT_CYAN).bold())
+    .with("option", new Style(Color.Ansi.BRIGHT_GREEN))
+    .with("parameter", new Style(Color.Ansi.BRIGHT_YELLOW))
+    .with("default", new Style(Color.Ansi.BRIGHT_BLACK))
+    .with("description", new Style(Color.Ansi.WHITE))
+    .with("error", new Style(new Color.Rgb(255, 80, 80)).bold())
+    .with("warning", new Style(Color.Ansi.BRIGHT_YELLOW).bold())
+    .with("success", new Style(Color.Ansi.BRIGHT_GREEN).bold())
+    .with("info", new Style(Color.Ansi.BRIGHT_BLUE))
+    .with("muted", new Style(Color.Ansi.BRIGHT_BLACK));
+
+var app = new MicroCLI("mytool - processes an input file").theme(theme);
+```
+
+The library uses these standard tags for its own output:
+
+| Tag | Used for |
+| --- | --- |
+| `title` | usage text passed to the constructor |
+| `heading` | the `Usage:` heading |
+| `option` | option names such as `-v, --verbose` |
+| `parameter` | parameter names such as `<COUNT>` or `[INPUT]` |
+| `default` | default values |
+| `description` | argument descriptions |
+| `error`, `warning`, `success`, `info`, `muted`, `emphasis` | application output |
+
+Unknown tags are rendered as plain text, so applications can use their own tags.
+`theme.with(tag, style)` returns a new theme and never mutates the original.
+
+### Paint your own output
+
+```java
+System.out.println(app.paint("success", "Done"));
+System.err.println(app.paint("error", "File not found"));
+```
+
+`paint` returns the text unchanged when colors are disabled.
+
+### When are colors enabled?
+
+Colors are detected automatically and are enabled only when all of these hold:
+
+- standard output is a terminal,
+- `NO_COLOR` is not set to a non-empty value,
+- `TERM` is not `dumb`.
+
+You can override the detection explicitly:
+
+```java
+app.colors(true);   // force ANSI output, useful in tests
+app.colors(false);  // always plain output
+```
+
+The `NO_COLOR` standard flag (registered with `stdFlags(NO_COLOR)`) sets
+`colors(false)` when `--no-color` is present. `parseAndHandle` checks
+`--no-color` before printing help, so `--no-color --help` is always plain.
+
+`usage(PrintStream)` and `paint` both respect the color flag, and the default
+`MicroCLI` theme is plain, so existing applications are unaffected.
+
 ## Easy API
 
 The optional `cz.utulnykoutek.microcli.easy` package provides `EasyCLI`, a

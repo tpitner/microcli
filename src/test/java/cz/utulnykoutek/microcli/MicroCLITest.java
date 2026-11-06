@@ -1,8 +1,15 @@
 package cz.utulnykoutek.microcli;
 
+import cz.utulnykoutek.microcli.theme.Color;
+import cz.utulnykoutek.microcli.theme.Style;
+import cz.utulnykoutek.microcli.theme.Theme;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -387,5 +394,90 @@ class MicroCLITest {
   void requiresNonBlankIds() {
     assertThrows(NullPointerException.class, () -> new Flag(null, "v", "verbose", "Verbose"));
     assertThrows(IllegalArgumentException.class, () -> new Flag(" ", "v", "verbose", "Verbose"));
+  }
+
+  @Test
+  void paintUsesThemeOnlyWhenColorsAreEnabled() {
+    var theme = new Theme().with("error", new Style(Color.Ansi.RED));
+    var cli = new MicroCLI("test").theme(theme);
+
+    cli.colors(true);
+    assertEquals("\u001B[31merror\u001B[0m", cli.paint("error", "error"));
+
+    cli.colors(false);
+    assertEquals("error", cli.paint("error", "error"));
+  }
+
+  @Test
+  void paintLeavesUnknownTagsUnchanged() {
+    var cli = new MicroCLI("test")
+        .theme(new Theme().with("error", new Style(Color.Ansi.RED)))
+        .colors(true);
+
+    assertEquals("plain", cli.paint("missing", "plain"));
+  }
+
+  @Test
+  void usageUsesThemeForTitleOptionsAndParameters() {
+    var theme = new Theme()
+        .with("title", new Style(Color.Ansi.BRIGHT_WHITE).bold())
+        .with("heading", new Style(Color.Ansi.BRIGHT_CYAN).bold())
+        .with("option", new Style(Color.Ansi.BRIGHT_GREEN))
+        .with("parameter", new Style(Color.Ansi.BRIGHT_YELLOW))
+        .with("default", new Style(Color.Ansi.BRIGHT_BLACK))
+        .with("description", new Style(Color.Ansi.WHITE));
+
+    var cli = new MicroCLI("test usage")
+        .theme(theme)
+        .colors(true)
+        .add(new Flag("verbose", "v", "verbose", "Verbose"))
+        .add(new ValuedOption<>("count", "c", "count", "COUNT",
+            Integer.class, 2, "Number of items"))
+        .add(new PositionalParameter<>("name", "NAME", String.class, "Ada", "Name"));
+
+    var output = usageOutput(cli);
+
+    assertTrue(output.contains("\u001B[97;1mtest usage\u001B[0m"));
+    assertTrue(output.contains("\u001B[96;1mUsage:\u001B[0m"));
+    assertTrue(output.contains("\u001B[92m-v, --verbose\u001B[0m"));
+    assertTrue(output.contains("\u001B[93mCOUNT\u001B[0m"));
+    assertTrue(output.contains("\u001B[90m2\u001B[0m"));
+    assertTrue(output.contains("\u001B[37mName\u001B[0m"));
+  }
+
+  @Test
+  void usageIsPlainWhenColorsAreDisabled() {
+    var theme = new Theme()
+        .with("title", new Style(Color.Ansi.BRIGHT_WHITE).bold())
+        .with("option", new Style(Color.Ansi.BRIGHT_GREEN));
+
+    var cli = new MicroCLI("test usage")
+        .theme(theme)
+        .colors(false)
+        .add(new Flag("verbose", "v", "verbose", "Verbose"));
+
+    var output = usageOutput(cli);
+
+    assertTrue(output.contains("test usage"));
+    assertTrue(output.contains("-v, --verbose"));
+    assertFalse(output.contains("\u001B["));
+  }
+
+  @Test
+  void detectsColorsFromTerminalAndEnvironment() {
+    var cli = new MicroCLI("test");
+
+    assertFalse(cli.detectColors(false, Map.of()));
+    assertTrue(cli.detectColors(true, Map.of()));
+    assertFalse(cli.detectColors(true, Map.of("NO_COLOR", "1")));
+    assertTrue(cli.detectColors(true, Map.of("NO_COLOR", "")));
+    assertFalse(cli.detectColors(true, Map.of("TERM", "dumb")));
+    assertTrue(cli.detectColors(true, Map.of("TERM", "xterm-256color")));
+  }
+
+  private static String usageOutput(MicroCLI cli) {
+    var output = new ByteArrayOutputStream();
+    cli.usage(new PrintStream(output, true, StandardCharsets.UTF_8));
+    return output.toString(StandardCharsets.UTF_8);
   }
 }

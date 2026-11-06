@@ -1,5 +1,9 @@
 package cz.utulnykoutek.microcli.easy;
 
+import cz.utulnykoutek.microcli.theme.Color;
+import cz.utulnykoutek.microcli.theme.Style;
+import cz.utulnykoutek.microcli.theme.Theme;
+
 import java.nio.file.Path;
 import java.util.Arrays;
 
@@ -13,12 +17,26 @@ import static cz.utulnykoutek.microcli.easy.StdFlag.VERSION;
 public class EasyDemo {
 
   static void main(String[] args) {
+    var theme = new Theme()
+        .with("title", new Style(Color.Ansi.BRIGHT_WHITE).bold())
+        .with("heading", new Style(Color.Ansi.BRIGHT_CYAN).bold())
+        .with("option", new Style(Color.Ansi.BRIGHT_GREEN))
+        .with("parameter", new Style(Color.Ansi.BRIGHT_YELLOW))
+        .with("default", new Style(Color.Ansi.BRIGHT_BLACK))
+        .with("description", new Style(Color.Ansi.WHITE))
+        .with("error", new Style(new Color.Rgb(255, 80, 80)).bold())
+        .with("warning", new Style(Color.Ansi.BRIGHT_YELLOW).bold())
+        .with("success", new Style(Color.Ansi.BRIGHT_GREEN).bold())
+        .with("info", new Style(Color.Ansi.BRIGHT_BLUE))
+        .with("muted", new Style(Color.Ansi.BRIGHT_BLACK));
+
     var cli = new EasyCLI("""
         Demo for EasyCLI. Shows standard flags and quick options.
         Options use their long name as ID, positional parameters use their name.
         The demo prints <count> random (0..1) numbers + <add>.
         <help> prints help, <version> prints the version.
         """)
+        .theme(theme)
         .stdFlags(HELP, VERBOSE, VERSION, DRY_RUN, DEBUG, NO_COLOR)
         .optInt("c", "count", 2, "Count of numbers to print")
         .optString("p", "prefix", "", "Prefix to print before each number")
@@ -40,18 +58,18 @@ public class EasyDemo {
       return;
     }
 
-    System.out.println("Parsed options " + cli.parsedOptions());
-    System.out.println("Parsed parameters " + cli.parsedParameters());
+    System.out.println(cli.paint("info", "Parsed options ") + cli.parsedOptions());
+    System.out.println(cli.paint("info", "Parsed parameters ") + cli.parsedParameters());
     System.out.println();
 
-    if (cli.isFlag(VERBOSE)) System.out.println("Verbose mode enabled");
-    if (cli.isFlag(DEBUG)) System.out.println("Debug mode enabled");
-    if (cli.isFlag(DRY_RUN)) System.out.println("Dry run: no files will be written");
-    if (cli.isFlag(NO_COLOR)) System.out.println("Color output disabled");
+    if (cli.isFlag(VERBOSE)) System.out.println(cli.paint("info", "Verbose mode enabled"));
+    if (cli.isFlag(DEBUG)) System.out.println(cli.paint("muted", "Debug mode enabled"));
+    if (cli.isFlag(DRY_RUN)) System.out.println(cli.paint("warning", "Dry run: no files will be written"));
+    if (cli.isFlag(NO_COLOR)) System.out.println(cli.paint("warning", "Color output disabled"));
 
     for (int i = 0; i < cli.getInt("count"); i++) {
       double rnd = Math.random() + cli.getDouble("add");
-      System.out.println(cli.getString("prefix") + i + " = " + rnd);
+      System.out.println(cli.paint("success", cli.getString("prefix") + i + " = " + rnd));
     }
   }
 }

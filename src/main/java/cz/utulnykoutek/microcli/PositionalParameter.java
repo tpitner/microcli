@@ -1,5 +1,8 @@
 package cz.utulnykoutek.microcli;
 
+import cz.utulnykoutek.microcli.theme.Theme;
+
+import java.io.PrintStream;
 import java.util.function.Function;
 
 public class PositionalParameter<T> extends TypedArgument<T> {
@@ -26,6 +29,12 @@ public class PositionalParameter<T> extends TypedArgument<T> {
   }
 
   @Override public void usage() {
-    System.out.println("[" + name() + "]\t default: '" + defaultData() + "'\t" + description());
+    usage(System.out, new Theme());
+  }
+
+  @Override public void usage(PrintStream out, Theme theme) {
+    out.println("[" + theme.paint("parameter", name()) + "]"
+        + "\t default: '" + theme.paint("default", defaultData()) + "'"
+        + "\t" + theme.paint("description", description()));
   }
 }

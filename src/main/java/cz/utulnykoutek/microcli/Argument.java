@@ -1,5 +1,9 @@
 package cz.utulnykoutek.microcli;
 
+import cz.utulnykoutek.microcli.theme.Theme;
+
+import java.io.PrintStream;
+
 public abstract class Argument implements Comparable<Argument> {
 
   private final String id;
@@ -58,4 +62,12 @@ public abstract class Argument implements Comparable<Argument> {
   public int hashCode() { return id().hashCode(); }
 
   public abstract void usage();
+
+  /**
+   * Prints this argument using {@code theme}. The default implementation falls
+   * back to {@link #usage()} for custom argument types.
+   */
+  public void usage(PrintStream out, Theme theme) {
+    usage();
+  }
 }

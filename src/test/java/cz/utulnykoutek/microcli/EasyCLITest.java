@@ -1,6 +1,9 @@
 package cz.utulnykoutek.microcli;
 
 import cz.utulnykoutek.microcli.easy.EasyCLI;
+import cz.utulnykoutek.microcli.theme.Color;
+import cz.utulnykoutek.microcli.theme.Style;
+import cz.utulnykoutek.microcli.theme.Theme;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -226,6 +229,47 @@ class EasyCLITest {
 
     assertThrows(IllegalArgumentException.class,
         () -> cli.parseAndHandle(new String[]{"--help"}, "mytool 1.0.0"));
+  }
+
+  @Test
+  void noColorDisablesColorsDuringParse() {
+    var cli = new EasyCLI("test")
+        .theme(new Theme().with("error", new Style(Color.Ansi.RED)))
+        .colors(true)
+        .stdFlags(NO_COLOR);
+
+    cli.parse(new String[]{"--no-color"});
+
+    assertFalse(cli.colors());
+    assertEquals("error", cli.paint("error", "error"));
+  }
+
+  @Test
+  void parseAndHandleAppliesNoColorBeforePrintingHelp() {
+    var cli = new EasyCLI("test usage")
+        .theme(new Theme().with("title", new Style(Color.Ansi.RED).bold()))
+        .colors(true)
+        .stdFlags(HELP, NO_COLOR);
+
+    var output = captureOutput(
+        () -> assertTrue(cli.parseAndHandle(new String[]{"--no-color", "--help"},
+            "mytool 1.0.0")));
+
+    assertTrue(output.contains("test usage"));
+    assertFalse(output.contains("\u001B["));
+  }
+
+  @Test
+  void parseAndHandlePrintsColoredHelpWhenColorsAreEnabled() {
+    var cli = new EasyCLI("test usage")
+        .theme(new Theme().with("title", new Style(Color.Ansi.RED).bold()))
+        .colors(true)
+        .stdFlags(HELP);
+
+    var output = captureOutput(
+        () -> assertTrue(cli.parseAndHandle(new String[]{"--help"}, "mytool 1.0.0")));
+
+    assertTrue(output.contains("\u001B[31;1mtest usage\u001B[0m"));
   }
 
   private static String captureOutput(Runnable action) {

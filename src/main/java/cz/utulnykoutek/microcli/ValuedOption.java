@@ -1,5 +1,8 @@
 package cz.utulnykoutek.microcli;
 
+import cz.utulnykoutek.microcli.theme.Theme;
+
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.function.Function;
 
@@ -23,8 +26,14 @@ public class ValuedOption<T> extends Option<T> {
   public String paramName() { return paramName; }
 
   @Override public void usage() {
-    System.out.println(names() + "\t<" + paramName() + ">\t default: "
-        + defaultDataText() + "\t" + description());
+    usage(System.out, new Theme());
+  }
+
+  @Override public void usage(PrintStream out, Theme theme) {
+    out.println(theme.paint("option", names())
+        + "\t<" + theme.paint("parameter", paramName()) + ">"
+        + "\t default: " + theme.paint("default", defaultDataText())
+        + "\t" + theme.paint("description", description()));
   }
 
   private String defaultDataText() {

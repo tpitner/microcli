@@ -5,6 +5,7 @@ import cz.utulnykoutek.microcli.MicroCLI;
 import cz.utulnykoutek.microcli.Option;
 import cz.utulnykoutek.microcli.PositionalParameter;
 import cz.utulnykoutek.microcli.ValuedOption;
+import cz.utulnykoutek.microcli.theme.Theme;
 
 import java.nio.file.Path;
 import java.util.Locale;
@@ -15,6 +16,26 @@ public class EasyCLI extends MicroCLI {
 
   public EasyCLI(String usage) {
     super(usage);
+  }
+
+  @Override
+  public EasyCLI theme(Theme theme) {
+    super.theme(theme);
+    return this;
+  }
+
+  @Override
+  public EasyCLI colors(boolean colors) {
+    super.colors(colors);
+    return this;
+  }
+
+  @Override
+  public void parse(String[] args) {
+    super.parse(args);
+    if (isFlag(StdFlag.NO_COLOR)) {
+      colors(false);
+    }
   }
 
   @Override
@@ -56,6 +77,10 @@ public class EasyCLI extends MicroCLI {
 
   public boolean parseAndHandle(String[] args, String version) {
     Objects.requireNonNull(args, "Arguments cannot be null");
+    if (isStandardFlagRegistered(StdFlag.NO_COLOR)
+        && containsOption(args, "--no-color")) {
+      colors(false);
+    }
     if (isStandardFlagRegistered(StdFlag.HELP) && containsOption(args, "-h", "--help")) {
       usage();
       return true;

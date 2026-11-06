@@ -1,10 +1,14 @@
 package cz.utulnykoutek.microcli;
 
+import cz.utulnykoutek.microcli.theme.Theme;
+
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -17,9 +21,49 @@ public class MicroCLI {
   private final Map<String, Argument> argumentsById = new LinkedHashMap<>();
   private final Map<String, Option<?>> optionsByShortName = new LinkedHashMap<>();
   private final Map<String, Option<?>> optionsByLongName = new LinkedHashMap<>();
+  private Theme theme = new Theme();
+  private boolean colors = detectColors();
 
   public MicroCLI(String usage) {
     this.usage = usage;
+  }
+
+  public MicroCLI theme(Theme theme) {
+    this.theme = Objects.requireNonNull(theme, "Theme cannot be null");
+    return this;
+  }
+
+  public Theme theme() {
+    return theme;
+  }
+
+  public MicroCLI colors(boolean colors) {
+    this.colors = colors;
+    return this;
+  }
+
+  public boolean colors() {
+    return colors;
+  }
+
+  /**
+   * Paints {@code text} with the style registered for {@code tag}, or returns
+   * it unchanged when colors are disabled.
+   */
+  public String paint(String tag, String text) {
+    return colors ? theme.paint(tag, text) : text;
+  }
+
+  private boolean detectColors() {
+    var console = System.console();
+    return detectColors(console != null && console.isTerminal(), System.getenv());
+  }
+
+  boolean detectColors(boolean terminal, Map<String, String> env) {
+    if (!terminal) return false;
+    String noColor = env.get("NO_COLOR");
+    if (noColor != null && !noColor.isEmpty()) return false;
+    return !"dumb".equalsIgnoreCase(env.get("TERM"));
   }
 
   public void parse(String[] args) {
@@ -182,9 +226,15 @@ public class MicroCLI {
   }
 
   public void usage() {
-    System.out.println(usage + "\nUsage:");
-    options.forEach(Option::usage);
-    positionalParameters.forEach(PositionalParameter::usage);
+    usage(System.out);
+  }
+
+  public void usage(PrintStream out) {
+    Theme effective = colors ? theme : theme.withoutColors();
+    out.println(effective.paint("title", usage));
+    out.println(effective.paint("heading", "Usage:"));
+    options.forEach(option -> option.usage(out, effective));
+    positionalParameters.forEach(parameter -> parameter.usage(out, effective));
   }
 
   private String requireId(String id) {
