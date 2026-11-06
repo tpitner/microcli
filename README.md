@@ -651,6 +651,29 @@ cli.flag("q", "quiet", "Suppresses non-error output"); // ID: quiet
 Duplicate IDs and option names are still rejected, and the core `MicroCLI`
 remains available if you need its lower-level API.
 
+### Mutually exclusive options
+
+MicroCLI does not have built-in mutually exclusive option groups. For the common
+cases, check the parsed flags yourself after `parse`:
+
+```java
+cli.parse(args);
+
+if (cli.isFlag("verbose") && cli.isFlag("quiet")) {
+  throw new IllegalArgumentException(
+      "Cannot use --verbose and --quiet together");
+}
+
+if (cli.isFlag("force") && cli.isFlag("dry-run")) {
+  throw new IllegalArgumentException(
+      "Cannot use --force and --dry-run together");
+}
+```
+
+This keeps the library small while still giving clear, application-specific
+error messages. If mutually exclusive groups become a recurring need, they can
+be added later as a small `mutuallyExclusive(...)` helper.
+
 ## Error handling
 
 `parse` throws `IllegalArgumentException` for:
