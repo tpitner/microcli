@@ -1,8 +1,15 @@
 [![Run on Repl.it](https://repl.it/badge/github/tpitner/microcli)](https://repl.it/github/tpitner/microcli)
-# microcli 
-Ultra light-weight command line arguments parser and validator for Java
+# microcli
+
+Ultra light-weight command line arguments parser and validator for Java.
+
+_MicroCLI_ supports flags, options with a single value, and a fixed number of
+positional parameters. Every argument is identified by a stable **ID**, so you
+can rename its command-line spelling without touching the code that reads the
+value.
 
 ## Requirements
+
 - Java 27+ (Homebrew OpenJDK 27)
 - Maven 3.8+
 
@@ -11,23 +18,93 @@ Ultra light-weight command line arguments parser and validator for Java
 This is a standard Maven project:
 
 ```sh
-mvn clean package   # builds the JAR into target/
+mvn clean package   # builds target/microcli-2.0.0.jar
 mvn test            # runs the test suite
-java -jar target/microcli-*.jar   # runs the demo (Demo)
 ```
 
-If JDK 27 is not your default, point Maven at the Homebrew JDK:
+If JDK 27 is not your default, point Maven and Java at the Homebrew JDK:
 
 ```sh
-JAVA_HOME=$(brew --prefix openjdk) mvn clean package
+export JAVA_HOME=$(brew --prefix openjdk)
+mvn clean package
+"$JAVA_HOME/bin/java" -jar target/microcli-2.0.0.jar
 ```
+
+## Quick start
+
+```java
+import cz.utulnykoutek.microcli.Flag;
+import cz.utulnykoutek.microcli.MicroCLI;
+import cz.utulnykoutek.microcli.PositionalParameter;
+import cz.utulnykoutek.microcli.ValuedOption;
+
+public class Greet {
+  public static void main(String[] args) {
+    var cli = new MicroCLI("Greet someone")
+        .add(
+            new Flag("verbose", "v", "verbose", "Produces verbose output"),
+            new ValuedOption<>("count", "c", "count", "COUNT",
+                Integer.class, 1, "How many times to greet"))
+        .add(
+            new PositionalParameter<>("name", "NAME", String.class, "world",
+                "Who to greet"));
+
+    cli.parse(args);
+
+    for (int i = 0; i < cli.getInt("count"); i++) {
+      if (cli.getFlag("verbose")) System.out.println("Greeting...");
+      System.out.println("Hello, " + cli.getString("name") + "!");
+    }
+  }
+}
+```
+
+Run it with:
+
+```sh
+javac -cp target/classes -d target/classes Greet.java
+java -cp target/classes Greet -v --count 3 Ada
+```
+
+```text
+Greeting...
+Hello, Ada!
+Greeting...
+Hello, Ada!
+Greeting...
+Hello, Ada!
+```
+
+## Running the demo
+
+`Demo` shows all supported argument types and prints the parsed values:
+
+```sh
+"$JAVA_HOME/bin/java" -jar target/microcli-2.0.0.jar
+```
+
+The demo uses a fixed set of arguments, including `-v`, `--help`, `--count 5`,
+`--prefix`, `--out`, and four positional parameters.
+
+The easy variant is available as `EasyDemo`:
+
+```sh
+"$JAVA_HOME/bin/java" -cp target/microcli-2.0.0.jar \
+  cz.utulnykoutek.microcli.easy.EasyDemo
+```
+
+It uses its own default arguments when no arguments are supplied; any arguments
+you pass replace those defaults.
 
 ## Usage
 
 ### Create MicroCLI
+
 ```java
 MicroCLI app = new MicroCLI("Usage of your application");
 ```
+
+The constructor argument is the text printed at the beginning of `usage()`.
 
 ### Create options and parameters
 
@@ -35,9 +112,12 @@ Every option and positional parameter has a mandatory, unique **ID**. The ID is
 used to read values and is completely independent of the command-line names:
 
 ```java
-var verboseOpt = new Flag("verbose", "v", "verbose", "Produces verbose info during processing");
+var verboseOpt = new Flag("verbose", "v", "verbose",
+    "Produces verbose info during processing");
+
 var countOpt = new ValuedOption<>("itemCount", "c", "count", "COUNT",
     Integer.class, 2, "Count of numbers to print");
+
 var filePar = new PositionalParameter<>("infile", "INFILE",
     Path.class, Path.of("in.txt"), "File to read");
 ```
@@ -50,6 +130,10 @@ constructor layouts are:
 - `ValuedOption(id, shortName, longName, paramName, type, parser, defaultValue, description)` for custom types
 - `PositionalParameter(id, displayName, type, defaultValue, description)`
 - `PositionalParameter(id, displayName, type, parser, defaultValue, description)` for custom types
+
+A flag has arity `0` and is either present (`true`) or missing (`false`). A
+valued option has arity `1` and consumes the next token as its value.
+Positional parameters are matched in the order in which they were added.
 
 The type token is mandatory. It is used for validation and to choose the
 built-in parser:
@@ -67,21 +151,38 @@ For other types, pass a parser explicitly:
 ```java
 var dateOpt = new ValuedOption<>("date", "d", "date", "DATE",
     LocalDate.class, LocalDate::parse, LocalDate.now(), "Date to process");
+
 var datePar = new PositionalParameter<>("start", "START",
     LocalDate.class, LocalDate::parse, LocalDate.now(), "Start date");
 ```
 
 `null` default values are allowed only for `String` and `Path`. Numeric
-arguments need a non-null default value.
+arguments need a non-null default value. A default value of the wrong type is
+rejected immediately.
 
 ### Add options and parameters
+
+`add` can be called repeatedly and returns the `MicroCLI` instance, so calls can
+be chained:
+
 ```java
-app.add(verboseOpt, countOpt);
-// add parameters
-app.add(filePar);
+app.add(verboseOpt, countOpt)
+   .add(filePar);
 ```
 
+Options and positional parameters are registered separately:
+
+```java
+app.add(verboseOpt, countOpt);   // options
+app.add(filePar);                // positional parameters
+```
+
+IDs must be unique across all options and positional parameters. Short names
+and long names must be unique among options. Duplicate registrations fail fast
+with `IllegalArgumentException`.
+
 ### Parse arguments
+
 ```java
 app.parse(args);
 ```
@@ -98,6 +199,26 @@ app.parse(new String[]{"--count", "abc"});
 Defaults are used only when the argument is missing, not as a fallback for an
 invalid value.
 
+If an option is repeated, the last occurrence wins:
+
+```java
+app.parse(new String[]{"--count", "2", "--count", "5"});
+// app.getInt("itemCount") == 5
+```
+
+Option values are separate tokens. The next token is taken as the value even if
+it starts with `-`:
+
+```java
+app.parse(new String[]{"--count", "-5"});
+// app.getInt("itemCount") == -5
+```
+
+Options must appear before positional parameters. Once the first positional
+token is seen, all remaining tokens are treated as positional parameters.
+
+### Terminate argument parsing with `--`
+
 `--` terminates argument parsing; everything after it is silently ignored. Only
 the registered number of positional parameters may appear before `--`; any
 extra positional argument fails fast:
@@ -107,27 +228,52 @@ app.parse(new String[]{"input.txt", "--", "-v", "ignored"});
 // "-v" and "ignored" are ignored
 ```
 
+`--` also stops positional parsing, so any remaining positional parameters keep
+their default values:
+
+```java
+app.parse(new String[]{"Ada", "--", "Bob", "Cid"});
+// only "Ada" is stored in the first positional parameter
+```
+
 ### Read values by ID (or defaults)
+
 ```java
 boolean verbose = app.getFlag("verbose");
+boolean alsoVerbose = app.isFlag("verbose"); // alias for getFlag
 int count = app.getInt("itemCount");
+double ratio = app.getDouble("ratio");
+String text = app.getString("text");
 Path file = app.getPath("infile");
 ```
+
+`isFlag` is a more natural spelling for boolean flags. It behaves exactly like
+`getFlag`: an absent registered flag is `false`, and an unknown ID throws
+`IllegalArgumentException`.
 
 The generic argument object exposes the same typed value:
 
 ```java
 int count = countOpt.get();
 Class<Integer> type = countOpt.type();
+Integer defaultValue = countOpt.defaultValue();
+String rawValue = countOpt.rawValue(); // null when not present
 ```
 
-You can also ask for any type explicitly:
+You can also ask for any compatible type explicitly:
 
 ```java
 int count = app.get("itemCount", Integer.class);
 ```
 
+Asking for an incompatible type fails with `IllegalArgumentException`:
+
+```java
+app.getInt("verbose"); // verbose is declared as Boolean
+```
+
 ### Check whether the values are present and valid
+
 ```java
 boolean present = app.isParsed("itemCount");
 boolean valid = app.isValid("itemCount");
@@ -137,23 +283,215 @@ After a successful `parse`, every present argument is valid. `isValid` is false
 for a missing argument. If you work with an argument object directly, its
 `valid()` method still reflects whether its raw value can be parsed.
 
+An argument can be present but invalid after a failed `parse`:
+
+```java
+try {
+  app.parse(new String[]{"--count", "abc"});
+} catch (IllegalArgumentException ex) {
+  app.isParsed("itemCount"); // true
+  app.isValid("itemCount");  // false
+  app.getInt("itemCount");   // the default value
+}
+```
+
 ### Look up an argument by ID
+
 ```java
 Optional<Argument> argument = app.find("itemCount");
 Argument required = app.get("itemCount"); // throws for an unknown ID
 ```
 
-IDs must be unique across all options and positional parameters; short names
-and long names must be unique among options. Duplicate registrations fail fast
-with `IllegalArgumentException`.
+### List what was parsed
+
+```java
+Set<Option<?>> options = app.parsedOptions();
+List<PositionalParameter<?>> parameters = app.parsedParameters();
+```
+
+Both collections contain only arguments that were present on the command line.
+`parsedParameters()` preserves registration order.
+
+### Print usage
+
+```java
+app.usage();
+```
+
+This prints the usage text passed to the constructor followed by every option
+and positional parameter, including its names, parameter name, default value,
+and description.
+
+A typical help flag:
+
+```java
+var help = new Flag("help", "h", "help", "Prints help");
+app.add(help);
+
+app.parse(args);
+
+if (app.isFlag("help")) {
+  app.usage();
+  return;
+}
+```
+
+## Easy API
+
+The optional `cz.utulnykoutek.microcli.easy` package provides `EasyCLI`, a
+fluent convenience layer on top of `MicroCLI`. `EasyCLI` extends `MicroCLI`, so
+all parsing and value-reading methods are still available.
+
+```java
+import cz.utulnykoutek.microcli.easy.EasyCLI;
+
+import java.nio.file.Path;
+
+import static cz.utulnykoutek.microcli.easy.StdFlag.DEBUG;
+import static cz.utulnykoutek.microcli.easy.StdFlag.DRY_RUN;
+import static cz.utulnykoutek.microcli.easy.StdFlag.HELP;
+import static cz.utulnykoutek.microcli.easy.StdFlag.NO_COLOR;
+import static cz.utulnykoutek.microcli.easy.StdFlag.VERBOSE;
+import static cz.utulnykoutek.microcli.easy.StdFlag.VERSION;
+
+var cli = new EasyCLI("mytool - processes an input file")
+    .stdFlags(HELP, VERBOSE, VERSION, DRY_RUN, DEBUG, NO_COLOR)
+    .optInt("l", "level", 1, "Log level")
+    .optPath("o", "outfile", Path.of("out.txt"), "Output file")
+    .optString("p", "prefix", "", "Line prefix")
+    .posString("input", "Input file");
+
+cli.parse(args);
+
+if (cli.handleHelpAndVersion("mytool 1.0.0")) {
+  return;
+}
+
+int level = cli.getInt("level");
+Path outfile = cli.getPath("outfile");
+String input = cli.getString("input");
+
+if (cli.isFlag(VERBOSE)) System.out.println("level = " + level);
+if (cli.isFlag(DEBUG)) System.out.println("debugging enabled");
+if (cli.isFlag(DRY_RUN)) System.out.println("dry run, writing nothing to " + outfile);
+if (cli.isFlag(NO_COLOR)) System.out.println("color output disabled");
+```
+
+### Standard flags
+
+`stdFlags(...)` registers preconfigured common flags:
+
+| Constant | ID | Short | Long | Description |
+| --- | --- | --- | --- | --- |
+| `HELP` | `help` | `-h` | `--help` | Prints help |
+| `VERBOSE` | `verbose` | `-v` | `--verbose` | Produces verbose output |
+| `VERSION` | `version` | `-V` | `--version` | Prints version |
+| `DRY_RUN` | `dryRun` | `-n` | `--dry-run` | Runs without making changes |
+| `DEBUG` | `debug` | `-d` | `--debug` | Produces debug output |
+| `NO_COLOR` | `noColor` | `-C` | `--no-color` | Disables colored output |
+
+Read them either through the enum or through their ID:
+
+```java
+boolean help = cli.isFlag(HELP);
+boolean helpToo = cli.isFlag("help");
+```
+
+`handleHelpAndVersion(version)` prints usage for `--help`, prints the supplied
+version string for `--version`, and returns `true` if either flag was handled.
+It does not call `System.exit`, so the caller decides whether to continue.
+
+### Quick options and positional parameters
+
+The typed shortcuts derive the argument ID from the long name:
+
+```java
+cli.optInt("l", "level", 1, "Log level")        // ID: level
+   .optDouble("r", "ratio", 1.5, "Ratio")       // ID: ratio
+   .optString("p", "prefix", "", "Prefix")      // ID: prefix
+   .optPath("o", "outfile", Path.of("out.txt"), "Output file"); // ID: outfile
+```
+
+The parameter name shown in usage is derived from the long name and
+upper-cased, for example `level` becomes `LEVEL`. Pass it explicitly if needed:
+
+```java
+cli.optInt("l", "level", "LOG_LEVEL", 1, "Log level");
+```
+
+Positional parameters use the name as both ID and the basis for the display
+name:
+
+```java
+cli.posString("input")                          // ID: input, display: INPUT
+   .posString("output", "out.txt", "Output file") // default: out.txt
+   .posInt("count", 1, "How many")
+   .posDouble("ratio", 1.0, "Ratio")
+   .posPath("config", Path.of("config.txt"), "Config file");
+```
+
+`posString(name)` uses `null` as the default value. The overload with a
+description, `posString(name, description)`, also keeps the default `null`.
+
+For custom types or a stable ID independent of the long name, use the generic
+methods:
+
+```java
+cli.opt("logLevel", "l", "level", "LEVEL",
+        Integer.class, 1, "Log level")
+   .opt("date", "d", "date", "DATE",
+        LocalDate.class, LocalDate::parse, LocalDate.now(), "Date to process")
+   .pos("start", "START",
+        LocalDate.class, LocalDate::parse, LocalDate.now(), "Start date");
+```
+
+Custom flags can be added with:
+
+```java
+cli.flag("q", "quiet", "Suppresses non-error output"); // ID: quiet
+```
+
+Duplicate IDs and option names are still rejected, and the core `MicroCLI`
+remains available if you need its lower-level API.
+
+## Error handling
+
+`parse` throws `IllegalArgumentException` for:
+
+- an unknown option (a token starting with `-` that matches no option),
+- a missing value for a valued option,
+- an extra positional argument before `--`,
+- a value that cannot be converted to the declared type.
+
+```java
+app.parse(new String[]{"--unknown"});
+// IllegalArgumentException: Unknown option: --unknown
+
+app.parse(new String[]{"--count"});
+// IllegalArgumentException: Missing value for option --count
+
+app.parse(new String[]{"Ada", "Bob"});
+// IllegalArgumentException: Unexpected positional argument: Bob
+```
 
 ## Limitations
+
 - _MicroCLI_ accepts only a fixed number of positional parameters. Extra
   positional arguments before `--` fail fast.
+- Options must precede positional parameters.
 - Numeric options and positional parameters need a non-null default value.
   `String` and `Path` arguments may use `null`.
 - Option values must be separate tokens; `--count=5` is not supported.
 - Combined short flags such as `-abc` are not supported.
-- Invalid values of present arguments abort parsing with `IllegalArgumentException`.
+- Short and long option names are matched exactly; `-vv` and `--verbose-extra`
+  do not match `-v` / `--verbose`.
+- Flags cannot be negated; a present flag is always `true`.
+- Invalid values of present arguments abort parsing with
+  `IllegalArgumentException`.
+- Everything after `--` is ignored, including values that could have been
+  positional parameters.
 
 ## Known bugs
+
+No known bugs at the moment. Please report issues at
+<https://github.com/tpitner/microcli/issues>.

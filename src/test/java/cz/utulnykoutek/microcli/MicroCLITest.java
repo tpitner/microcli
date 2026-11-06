@@ -221,6 +221,20 @@ class MicroCLITest {
   }
 
   @Test
+  void isFlagIsAnAliasForGetFlag() {
+    var cli = new MicroCLI("test").add(new Flag("verbose", "v", "verbose", "Verbose"));
+
+    assertFalse(cli.isFlag("verbose"));
+    assertEquals(cli.getFlag("verbose"), cli.isFlag("verbose"));
+
+    cli.parse(new String[]{"-v"});
+
+    assertTrue(cli.isFlag("verbose"));
+    assertEquals(cli.getFlag("verbose"), cli.isFlag("verbose"));
+    assertThrows(IllegalArgumentException.class, () -> cli.isFlag("missing"));
+  }
+
+  @Test
   void supportsCustomParsers() {
     var upper = new ValuedOption<>("upper", "u", "upper", "VALUE",
         String.class, String::toUpperCase, "default", "Upper-cased value");

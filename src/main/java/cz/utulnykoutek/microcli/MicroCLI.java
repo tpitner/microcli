@@ -161,6 +161,8 @@ public class MicroCLI {
 
   public boolean getFlag(String id) { return get(id, Boolean.class); }
 
+  public boolean isFlag(String id) { return getFlag(id); }
+
   public boolean isParsed(String id) {
     return find(id).map(Argument::isParsed).orElse(false);
   }
