@@ -413,17 +413,17 @@ import cz.utulnykoutek.microcli.theme.Style;
 import cz.utulnykoutek.microcli.theme.Theme;
 
 var theme = new Theme()
-    .with("title", new Style(Color.Ansi.BRIGHT_WHITE).bold())
-    .with("heading", new Style(Color.Ansi.BRIGHT_CYAN).bold())
-    .with("option", new Style(Color.Ansi.BRIGHT_GREEN))
-    .with("parameter", new Style(Color.Ansi.BRIGHT_YELLOW))
-    .with("default", new Style(Color.Ansi.BRIGHT_BLACK))
-    .with("description", new Style(Color.Ansi.WHITE))
-    .with("error", new Style(new Color.Rgb(255, 80, 80)).bold())
-    .with("warning", new Style(Color.Ansi.BRIGHT_YELLOW).bold())
-    .with("success", new Style(Color.Ansi.BRIGHT_GREEN).bold())
-    .with("info", new Style(Color.Ansi.BRIGHT_BLUE))
-    .with("muted", new Style(Color.Ansi.BRIGHT_BLACK));
+    .withStyle("title", new Style(Color.Ansi.BRIGHT_WHITE).bold())
+    .withStyle("heading", new Style(Color.Ansi.BRIGHT_CYAN).bold())
+    .withStyle("option", new Style(Color.Ansi.BRIGHT_GREEN))
+    .withStyle("parameter", new Style(Color.Ansi.BRIGHT_YELLOW))
+    .withStyle("default", new Style(Color.Ansi.BRIGHT_BLACK))
+    .withStyle("description", new Style(Color.Ansi.WHITE))
+    .withStyle("error", new Style(new Color.Rgb(255, 80, 80)).bold())
+    .withStyle("warning", new Style(Color.Ansi.BRIGHT_YELLOW).bold())
+    .withStyle("success", new Style(Color.Ansi.BRIGHT_GREEN).bold())
+    .withStyle("info", new Style(Color.Ansi.BRIGHT_BLUE))
+    .withStyle("muted", new Style(Color.Ansi.BRIGHT_BLACK));
 
 var app = new MicroCLI("mytool - processes an input file").theme(theme);
 ```
@@ -441,7 +441,7 @@ The library uses these standard tags for its own output:
 | `error`, `warning`, `success`, `info`, `muted`, `emphasis` | application output |
 
 Unknown tags are rendered as plain text, so applications can use their own tags.
-`theme.with(tag, style)` returns a new theme and never mutates the original.
+`theme.withStyle(tag, style)` returns a new theme and never mutates the original.
 
 ### Paint your own output
 

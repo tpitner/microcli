@@ -62,7 +62,7 @@ class ThemeTest {
 
   @Test
   void themeReturnsPlainStyleForUnknownTags() {
-    var theme = new Theme().with("error", new Style(Color.Ansi.RED));
+    var theme = new Theme().withStyle("error", new Style(Color.Ansi.RED));
 
     assertTrue(theme.style("missing").isPlain());
     assertEquals("plain", theme.paint("missing", "plain"));
@@ -71,18 +71,59 @@ class ThemeTest {
   @Test
   void themeWithAddsAndOverridesTags() {
     var theme = new Theme()
-        .with("error", new Style(Color.Ansi.RED))
-        .with("error", new Style(Color.Ansi.BRIGHT_RED).bold());
+        .withStyle("error", new Style(Color.Ansi.RED))
+        .withStyle("error", new Style(Color.Ansi.BRIGHT_RED).bold());
 
     assertEquals("\u001B[91;1merror\u001B[0m", theme.paint("error", "error"));
   }
 
   @Test
+  void newThemeIsPlainAndNamedPlain() {
+    var theme = new Theme();
+
+    assertEquals("plain", theme.name());
+    assertTrue(theme.style("anything").isPlain());
+  }
+
+  @Test
+  void namedThemePreservesItsName() {
+    var theme = new Theme("Dark");
+
+    assertEquals("Dark", theme.name());
+    assertTrue(theme.styles().isEmpty());
+  }
+
+  @Test
+  void withStylePreservesNameAndAddsStyle() {
+    var theme = new Theme("Dark").withStyle("error", new Style(Color.Ansi.RED));
+
+    assertEquals("Dark", theme.name());
+    assertEquals(1, theme.styles().size());
+    assertEquals("\u001B[31merror\u001B[0m", theme.paint("error", "error"));
+  }
+
+  @Test
+  void withoutColorsPreservesName() {
+    var theme = new Theme("Dark").withStyle("error", new Style(Color.Ansi.RED));
+
+    assertEquals("Dark", theme.withoutColors().name());
+    assertTrue(theme.withoutColors().style("error").isPlain());
+  }
+
+  @Test
   void withoutColorsReturnsPlainTheme() {
-    var theme = new Theme().with("error", new Style(Color.Ansi.RED).bold());
+    var theme = new Theme().withStyle("error", new Style(Color.Ansi.RED).bold());
 
     assertTrue(theme.withoutColors().style("error").isPlain());
     assertEquals("error", theme.withoutColors().paint("error", "error"));
     assertFalse(theme.style("error").isPlain());
+  }
+
+  @Test
+  void stylesReturnsUnmodifiableMap() {
+    var theme = new Theme("Dark").withStyle("error", new Style(Color.Ansi.RED));
+
+    assertThrows(UnsupportedOperationException.class,
+        () -> theme.styles().put("x", new Style()));
   }
 }

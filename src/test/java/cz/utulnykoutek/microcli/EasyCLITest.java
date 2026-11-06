@@ -234,7 +234,7 @@ class EasyCLITest {
   @Test
   void noColorDisablesColorsDuringParse() {
     var cli = new EasyCLI("test")
-        .theme(new Theme().with("error", new Style(Color.Ansi.RED)))
+        .theme(new Theme().withStyle("error", new Style(Color.Ansi.RED)))
         .colors(true)
         .stdFlags(NO_COLOR);
 
@@ -247,7 +247,7 @@ class EasyCLITest {
   @Test
   void parseAndHandleAppliesNoColorBeforePrintingHelp() {
     var cli = new EasyCLI("test usage")
-        .theme(new Theme().with("title", new Style(Color.Ansi.RED).bold()))
+        .theme(new Theme().withStyle("title", new Style(Color.Ansi.RED).bold()))
         .colors(true)
         .stdFlags(HELP, NO_COLOR);
 
@@ -262,7 +262,7 @@ class EasyCLITest {
   @Test
   void parseAndHandlePrintsColoredHelpWhenColorsAreEnabled() {
     var cli = new EasyCLI("test usage")
-        .theme(new Theme().with("title", new Style(Color.Ansi.RED).bold()))
+        .theme(new Theme().withStyle("title", new Style(Color.Ansi.RED).bold()))
         .colors(true)
         .stdFlags(HELP);
 

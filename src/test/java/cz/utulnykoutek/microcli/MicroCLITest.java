@@ -398,7 +398,7 @@ class MicroCLITest {
 
   @Test
   void paintUsesThemeOnlyWhenColorsAreEnabled() {
-    var theme = new Theme().with("error", new Style(Color.Ansi.RED));
+    var theme = new Theme().withStyle("error", new Style(Color.Ansi.RED));
     var cli = new MicroCLI("test").theme(theme);
 
     cli.colors(true);
@@ -411,7 +411,7 @@ class MicroCLITest {
   @Test
   void paintLeavesUnknownTagsUnchanged() {
     var cli = new MicroCLI("test")
-        .theme(new Theme().with("error", new Style(Color.Ansi.RED)))
+        .theme(new Theme().withStyle("error", new Style(Color.Ansi.RED)))
         .colors(true);
 
     assertEquals("plain", cli.paint("missing", "plain"));
@@ -420,12 +420,12 @@ class MicroCLITest {
   @Test
   void usageUsesThemeForTitleOptionsAndParameters() {
     var theme = new Theme()
-        .with("title", new Style(Color.Ansi.BRIGHT_WHITE).bold())
-        .with("heading", new Style(Color.Ansi.BRIGHT_CYAN).bold())
-        .with("option", new Style(Color.Ansi.BRIGHT_GREEN))
-        .with("parameter", new Style(Color.Ansi.BRIGHT_YELLOW))
-        .with("default", new Style(Color.Ansi.BRIGHT_BLACK))
-        .with("description", new Style(Color.Ansi.WHITE));
+        .withStyle("title", new Style(Color.Ansi.BRIGHT_WHITE).bold())
+        .withStyle("heading", new Style(Color.Ansi.BRIGHT_CYAN).bold())
+        .withStyle("option", new Style(Color.Ansi.BRIGHT_GREEN))
+        .withStyle("parameter", new Style(Color.Ansi.BRIGHT_YELLOW))
+        .withStyle("default", new Style(Color.Ansi.BRIGHT_BLACK))
+        .withStyle("description", new Style(Color.Ansi.WHITE));
 
     var cli = new MicroCLI("test usage")
         .theme(theme)
@@ -448,8 +448,8 @@ class MicroCLITest {
   @Test
   void usageIsPlainWhenColorsAreDisabled() {
     var theme = new Theme()
-        .with("title", new Style(Color.Ansi.BRIGHT_WHITE).bold())
-        .with("option", new Style(Color.Ansi.BRIGHT_GREEN));
+        .withStyle("title", new Style(Color.Ansi.BRIGHT_WHITE).bold())
+        .withStyle("option", new Style(Color.Ansi.BRIGHT_GREEN));
 
     var cli = new MicroCLI("test usage")
         .theme(theme)
