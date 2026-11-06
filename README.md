@@ -538,12 +538,32 @@ if (cli.isFlag(NO_COLOR)) System.out.println("color output disabled");
 
 | Constant | ID | Short | Long | Description |
 | --- | --- | --- | --- | --- |
+| `ALL` | `all` | `-a` | `--all` | Processes all items |
+| `DEBUG` | `debug` | `-d` | `--debug` | Produces debug output |
+| `DRY_RUN` | `dryRun` | `-n` | `--dry-run` | Runs without making changes |
+| `FORCE` | `force` | `-f` | `--force` | Forces the operation |
 | `HELP` | `help` | `-h` | `--help` | Prints help |
+| `JSON` | `json` | — | `--json` | Prints JSON output |
+| `NO_COLOR` | `noColor` | — | `--no-color` | Disables colored output |
+| `NO_INPUT` | `noInput` | — | `--no-input` | Disables interactive input |
+| `QUIET` | `quiet` | `-q` | `--quiet` | Suppresses non-essential output |
 | `VERBOSE` | `verbose` | `-v` | `--verbose` | Produces verbose output |
 | `VERSION` | `version` | `-V` | `--version` | Prints version |
-| `DRY_RUN` | `dryRun` | `-n` | `--dry-run` | Runs without making changes |
-| `DEBUG` | `debug` | `-d` | `--debug` | Produces debug output |
-| `NO_COLOR` | `noColor` | — | `--no-color` | Disables colored output |
+| `YES` | `yes` | `-y` | `--yes` | Answers yes to prompts |
+
+`-v` is deliberately **verbose**, while `-V` is **version** and `-d` is **debug**.
+This follows the common GNU convention and avoids the ambiguity of using `-v`
+for both.
+
+Options with a value (such as `-o/--output`, `-p/--port`, or `-u/--user`)
+are not standard flags, because their type and default value are
+application-specific. Use the existing fluent helpers for them:
+
+```java
+cli.optPath("o", "output", null, "Output file")
+   .optInt("p", "port", 8080, "Port")
+   .optString("u", "user", null, "User");
+```
 
 Read them either through the enum or through their ID:
 
