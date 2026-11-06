@@ -54,12 +54,35 @@ public class EasyCLI extends MicroCLI {
     return false;
   }
 
+  public boolean parseAndHandle(String[] args, String version) {
+    Objects.requireNonNull(args, "Arguments cannot be null");
+    if (isStandardFlagRegistered(StdFlag.HELP) && containsOption(args, "-h", "--help")) {
+      usage();
+      return true;
+    }
+    if (isStandardFlagRegistered(StdFlag.VERSION)
+        && containsOption(args, "-V", "--version")) {
+      System.out.println(version);
+      return true;
+    }
+    parse(args);
+    return false;
+  }
+
+  public EasyCLI flag(String longName, String description) {
+    return flag(longName, null, longName, description);
+  }
+
   public EasyCLI flag(String shortName, String longName, String description) {
     return flag(longName, shortName, longName, description);
   }
 
   public EasyCLI flag(String id, String shortName, String longName, String description) {
     return add(new Flag(id, shortName, longName, description));
+  }
+
+  public EasyCLI optInt(String longName, int defaultValue, String description) {
+    return optInt(null, longName, upperName(longName), defaultValue, description);
   }
 
   public EasyCLI optInt(String shortName, String longName, int defaultValue,
@@ -73,6 +96,10 @@ public class EasyCLI extends MicroCLI {
         defaultValue, description);
   }
 
+  public EasyCLI optDouble(String longName, double defaultValue, String description) {
+    return optDouble(null, longName, upperName(longName), defaultValue, description);
+  }
+
   public EasyCLI optDouble(String shortName, String longName, double defaultValue,
                            String description) {
     return optDouble(shortName, longName, upperName(longName), defaultValue, description);
@@ -84,6 +111,10 @@ public class EasyCLI extends MicroCLI {
         defaultValue, description);
   }
 
+  public EasyCLI optString(String longName, String defaultValue, String description) {
+    return optString(null, longName, upperName(longName), defaultValue, description);
+  }
+
   public EasyCLI optString(String shortName, String longName, String defaultValue,
                            String description) {
     return optString(shortName, longName, upperName(longName), defaultValue, description);
@@ -93,6 +124,10 @@ public class EasyCLI extends MicroCLI {
                            String defaultValue, String description) {
     return opt(longName, shortName, longName, paramName, String.class,
         defaultValue, description);
+  }
+
+  public EasyCLI optPath(String longName, Path defaultValue, String description) {
+    return optPath(null, longName, upperName(longName), defaultValue, description);
   }
 
   public EasyCLI optPath(String shortName, String longName, Path defaultValue,
@@ -161,6 +196,20 @@ public class EasyCLI extends MicroCLI {
                          Function<String, T> parser, T defaultValue, String description) {
     return add(new PositionalParameter<>(id, displayName, type, parser, defaultValue,
         description));
+  }
+
+  private boolean isStandardFlagRegistered(StdFlag flag) {
+    return find(flag.id()).isPresent();
+  }
+
+  private static boolean containsOption(String[] args, String... names) {
+    for (String arg : args) {
+      if ("--".equals(arg)) return false;
+      for (String name : names) {
+        if (name.equals(arg)) return true;
+      }
+    }
+    return false;
   }
 
   private static String upperName(String name) {

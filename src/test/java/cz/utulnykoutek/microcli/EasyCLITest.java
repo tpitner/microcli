@@ -26,7 +26,7 @@ class EasyCLITest {
     var cli = new EasyCLI("test")
         .stdFlags(HELP, VERBOSE, VERSION, DRY_RUN, DEBUG, NO_COLOR);
 
-    cli.parse(new String[]{"-h", "-v", "-V", "-n", "-d", "-C"});
+    cli.parse(new String[]{"-h", "-v", "-V", "-n", "-d", "--no-color"});
 
     assertTrue(cli.isFlag(HELP));
     assertTrue(cli.isFlag(VERBOSE));
@@ -44,14 +44,16 @@ class EasyCLITest {
   }
 
   @Test
-  void noColorSupportsShortAndLongNames() {
-    var shortCli = new EasyCLI("test").stdFlags(NO_COLOR);
-    shortCli.parse(new String[]{"-C"});
-    assertTrue(shortCli.isFlag(NO_COLOR));
+  void noColorIsLongOnly() {
+    var cli = new EasyCLI("test").stdFlags(NO_COLOR);
+    cli.parse(new String[]{"--no-color"});
+    assertTrue(cli.isFlag(NO_COLOR));
+    assertTrue(cli.isFlag("noColor"));
 
-    var longCli = new EasyCLI("test").stdFlags(NO_COLOR);
-    longCli.parse(new String[]{"--no-color"});
-    assertTrue(longCli.isFlag("noColor"));
+    var shortCli = new EasyCLI("test").stdFlags(NO_COLOR);
+    var ex = assertThrows(IllegalArgumentException.class,
+        () -> shortCli.parse(new String[]{"-C"}));
+    assertTrue(ex.getMessage().contains("Unknown option"));
   }
 
   @Test
@@ -161,6 +163,69 @@ class EasyCLITest {
     var versionOutput = captureOutput(
         () -> assertTrue(version.handleHelpAndVersion("mytool 1.0.0")));
     assertTrue(versionOutput.contains("mytool 1.0.0"));
+  }
+
+  @Test
+  void parseAndHandlePrintsHelpBeforeValidation() {
+    var cli = new EasyCLI("test usage")
+        .stdFlags(HELP, VERSION)
+        .optInt("c", "count", 1, "Count");
+
+    var output = captureOutput(
+        () -> assertTrue(cli.parseAndHandle(new String[]{"--help", "--count", "bad"},
+            "mytool 1.0.0")));
+
+    assertTrue(output.contains("test usage"));
+    assertTrue(output.contains("Usage:"));
+    assertFalse(cli.isParsed("count"));
+  }
+
+  @Test
+  void parseAndHandlePrintsVersionBeforeValidation() {
+    var cli = new EasyCLI("test usage")
+        .stdFlags(HELP, VERSION)
+        .optInt("c", "count", 1, "Count");
+
+    var output = captureOutput(
+        () -> assertTrue(cli.parseAndHandle(new String[]{"--version", "--count", "bad"},
+            "mytool 1.0.0")));
+
+    assertTrue(output.contains("mytool 1.0.0"));
+    assertFalse(cli.isParsed("count"));
+  }
+
+  @Test
+  void parseAndHandleParsesNormallyWithoutHelpOrVersion() {
+    var cli = new EasyCLI("test usage")
+        .stdFlags(HELP, VERSION)
+        .optInt("c", "count", 1, "Count");
+
+    assertFalse(cli.parseAndHandle(new String[]{"--count", "3"}, "mytool 1.0.0"));
+    assertEquals(3, cli.getInt("count"));
+  }
+
+  @Test
+  void parseAndHandleStopsScanningAtTerminator() {
+    var cli = new EasyCLI("test usage")
+        .stdFlags(HELP, VERSION)
+        .posString("input");
+
+    var output = captureOutput(
+        () -> assertFalse(cli.parseAndHandle(new String[]{"--", "--help"}, "mytool 1.0.0")));
+
+    assertEquals("", output);
+    assertEquals("--help", cli.getString("input"));
+  }
+
+  @Test
+  void parseAndHandleIgnoresUnregisteredStandardFlags() {
+    var cli = new EasyCLI("test usage").optInt("c", "count", 1, "Count");
+
+    assertFalse(cli.parseAndHandle(new String[]{"--count", "3"}, "mytool 1.0.0"));
+    assertEquals(3, cli.getInt("count"));
+
+    assertThrows(IllegalArgumentException.class,
+        () -> cli.parseAndHandle(new String[]{"--help"}, "mytool 1.0.0"));
   }
 
   private static String captureOutput(Runnable action) {

@@ -23,8 +23,8 @@ public class ValuedOption<T> extends Option<T> {
   public String paramName() { return paramName; }
 
   @Override public void usage() {
-    System.out.println("-" + shortName() + "\t" + "--" + longName() + "\t<" + paramName()
-        + ">\t default: " + defaultDataText() + "\t" + description());
+    System.out.println(names() + "\t<" + paramName() + ">\t default: "
+        + defaultDataText() + "\t" + description());
   }
 
   private String defaultDataText() {

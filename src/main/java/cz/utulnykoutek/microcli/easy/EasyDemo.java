@@ -36,15 +36,13 @@ public class EasyDemo {
     };
     System.out.println("Raw arguments " + Arrays.asList(arguments));
 
-    cli.parse(arguments);
+    if (cli.parseAndHandle(arguments, "EasyCLI demo 2.1.0")) {
+      return;
+    }
 
     System.out.println("Parsed options " + cli.parsedOptions());
     System.out.println("Parsed parameters " + cli.parsedParameters());
     System.out.println();
-
-    if (cli.handleHelpAndVersion("EasyCLI demo 2.0.0")) {
-      return;
-    }
 
     if (cli.isFlag(VERBOSE)) System.out.println("Verbose mode enabled");
     if (cli.isFlag(DEBUG)) System.out.println("Debug mode enabled");

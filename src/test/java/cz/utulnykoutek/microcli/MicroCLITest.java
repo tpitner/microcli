@@ -95,7 +95,7 @@ class MicroCLITest {
   }
 
   @Test
-  void treatsDoubleDashAsTerminatorAndIgnoresTheRest() {
+  void treatsTokensAfterDoubleDashAsPositionalParameters() {
     var cli = new MicroCLI("test")
         .add(
             new Flag("verbose", "v", "verbose", "Verbose"),
@@ -103,47 +103,48 @@ class MicroCLITest {
                 Integer.class, 2, "Number of items"))
         .add(new PositionalParameter<>("name", "NAME", String.class, "default", "Name"));
 
-    cli.parse(new String[]{"-v", "--", "--count", "not-a-number", "Ada"});
+    cli.parse(new String[]{"-v", "--", "--count"});
 
     assertTrue(cli.getFlag("verbose"));
     assertEquals(2, cli.getInt("itemCount"));
-    assertFalse(cli.isParsed("name"));
-    assertEquals("default", cli.getString("name"));
+    assertEquals("--count", cli.getString("name"));
   }
 
   @Test
-  void stopsPositionalParsingAtTerminator() {
+  void assignsPositionalParametersAfterTerminator() {
     var cli = new MicroCLI("test")
-        .add(new PositionalParameter<>("name", "NAME", String.class, "default", "Name"));
+        .add(
+            new PositionalParameter<>("first", "FIRST", String.class, "a", "First"),
+            new PositionalParameter<>("second", "SECOND", String.class, "b", "Second"));
 
-    cli.parse(new String[]{"Ada", "--", "Bob", "Cid"});
+    cli.parse(new String[]{"Ada", "--", "Bob"});
 
-    assertEquals("Ada", cli.getString("name"));
+    assertEquals("Ada", cli.getString("first"));
+    assertEquals("Bob", cli.getString("second"));
   }
 
   @Test
-  void rejectsExtraPositionalParametersBeforeTerminator() {
+  void rejectsExtraPositionalParametersAfterTerminator() {
     var cli = new MicroCLI("test")
         .add(new PositionalParameter<>("name", "NAME", String.class, "default", "Name"));
 
     var ex = assertThrows(IllegalArgumentException.class,
-        () -> cli.parse(new String[]{"Ada", "Bob", "--", "Cid"}));
+        () -> cli.parse(new String[]{"Ada", "--", "Bob"}));
 
     assertTrue(ex.getMessage().contains("Unexpected positional argument"));
     assertTrue(ex.getMessage().contains("Bob"));
     assertEquals("Ada", cli.getString("name"));
-
-    assertThrows(IllegalArgumentException.class,
-        () -> cli.parse(new String[]{"Ada", "Bob"}));
   }
 
   @Test
-  void acceptsTerminatorWithNoRegisteredPositionalParameters() {
+  void acceptsBareTerminatorWithNoRegisteredPositionalParameters() {
     var cli = new MicroCLI("test").add(new Flag("verbose", "v", "verbose", "Verbose"));
 
-    assertDoesNotThrow(() -> cli.parse(new String[]{"--", "-v", "ignored"}));
-
+    assertDoesNotThrow(() -> cli.parse(new String[]{"--"}));
     assertFalse(cli.getFlag("verbose"));
+
+    assertThrows(IllegalArgumentException.class,
+        () -> cli.parse(new String[]{"--", "-v"}));
   }
 
   @Test
@@ -153,9 +154,66 @@ class MicroCLITest {
             Integer.class, 2, "Number of items"));
 
     var ex = assertThrows(IllegalArgumentException.class,
-        () -> cli.parse(new String[]{"--count", "bad", "--", "ignored"}));
+        () -> cli.parse(new String[]{"--count", "bad", "--"}));
 
     assertTrue(ex.getMessage().contains("itemCount"));
+  }
+
+  @Test
+  void parsesOptionsAfterPositionalParameters() {
+    var cli = new MicroCLI("test")
+        .add(
+            new Flag("verbose", "v", "verbose", "Verbose"),
+            new ValuedOption<>("itemCount", "c", "count", "COUNT",
+                Integer.class, 2, "Number of items"))
+        .add(new PositionalParameter<>("name", "NAME", String.class, "default", "Name"));
+
+    cli.parse(new String[]{"Ada", "-v", "--count", "5"});
+
+    assertEquals("Ada", cli.getString("name"));
+    assertTrue(cli.getFlag("verbose"));
+    assertEquals(5, cli.getInt("itemCount"));
+  }
+
+  @Test
+  void acceptsDashAsPositionalValue() {
+    var cli = new MicroCLI("test")
+        .add(new Flag("verbose", "v", "verbose", "Verbose"))
+        .add(new PositionalParameter<>("input", "INPUT", String.class, null, "Input"));
+
+    cli.parse(new String[]{"-v", "-"});
+
+    assertTrue(cli.getFlag("verbose"));
+    assertEquals("-", cli.getString("input"));
+  }
+
+  @Test
+  void parsesLongOptionWithEqualsValue() {
+    var cli = new MicroCLI("test")
+        .add(
+            new ValuedOption<>("itemCount", "c", "count", "COUNT",
+                Integer.class, 2, "Number of items"),
+            new ValuedOption<>("prefix", "p", "prefix", "PREFIX",
+                String.class, "", "Prefix"));
+
+    cli.parse(new String[]{"--count=5", "--prefix=a=b"});
+
+    assertEquals(5, cli.getInt("itemCount"));
+    assertEquals("a=b", cli.getString("prefix"));
+  }
+
+  @Test
+  void supportsLongOnlyFlagsAndOptions() {
+    var cli = new MicroCLI("test")
+        .add(
+            new Flag("quiet", null, "quiet", "Suppresses output"),
+            new ValuedOption<>("level", null, "level", "LEVEL",
+                Integer.class, 1, "Log level"));
+
+    cli.parse(new String[]{"--quiet", "--level=3"});
+
+    assertTrue(cli.isFlag("quiet"));
+    assertEquals(3, cli.getInt("level"));
   }
 
   @Test

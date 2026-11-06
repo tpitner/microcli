@@ -25,45 +25,41 @@ public class MicroCLI {
   public void parse(String[] args) {
     if(args == null) throw new NullPointerException("Arguments cannot be null");
     int index = 0;
-    boolean positionals = false;
+    int paramIndex = 0;
+    boolean optionsEnded = false;
 
-    parseOptions:
     while (index < args.length) {
-      if(isArgumentTerminator(args[index])) break;
+      String arg = args[index];
 
-      int next = index;
-
-      for (Option<?> option : options) {
-        next = option.match(args, index);
-        if(next < 0) {
-          positionals = true;
-          break parseOptions;
-        }
-        if(next > index) break;
+      if(!optionsEnded && isArgumentTerminator(arg)) {
+        optionsEnded = true;
+        index++;
+        continue;
       }
 
-      if(next == index) {
-        if(!args[index].startsWith("-")) {
-          positionals = true;
-          break;
+      if(!optionsEnded && !isPositionalToken(arg)) {
+        int next = index;
+
+        for (Option<?> option : options) {
+          next = option.match(args, index);
+          if(next > index) break;
         }
-        throw new IllegalArgumentException("Unknown option: " + args[index]);
+
+        if(next > index) {
+          index = next;
+          continue;
+        }
+
+        throw new IllegalArgumentException("Unknown option: " + arg);
       }
 
-      index = next;
-    }
-
-    if(positionals) {
-      int paramIndex = 0;
-      while(index < args.length && !isArgumentTerminator(args[index])) {
-        if(paramIndex >= positionalParameters.size()) {
-          throw new IllegalArgumentException(
-              "Unexpected positional argument: " + args[index]);
-        }
-        PositionalParameter<?> parameter = positionalParameters.get(paramIndex);
-        index = parameter.match(args, index);
-        paramIndex++;
+      if(paramIndex >= positionalParameters.size()) {
+        throw new IllegalArgumentException(
+            "Unexpected positional argument: " + arg);
       }
+      PositionalParameter<?> parameter = positionalParameters.get(paramIndex);
+      index = parameter.match(args, index);
+      paramIndex++;
     }
 
     validateParsedArguments();
@@ -71,6 +67,10 @@ public class MicroCLI {
 
   private static boolean isArgumentTerminator(String arg) {
     return "--".equals(arg);
+  }
+
+  private static boolean isPositionalToken(String arg) {
+    return "-".equals(arg) || !arg.startsWith("-");
   }
 
   private void validateParsedArguments() {
@@ -107,7 +107,7 @@ public class MicroCLI {
       throw new IllegalArgumentException("Duplicate argument id: " + argument.id());
     }
     if(argument instanceof Option<?> option) {
-      if(optionsByShortName.containsKey(option.shortName())) {
+      if(option.hasShortName() && optionsByShortName.containsKey(option.shortName())) {
         throw new IllegalArgumentException("Duplicate option short name: -" + option.shortName());
       }
       if(optionsByLongName.containsKey(option.longName())) {
@@ -117,7 +117,9 @@ public class MicroCLI {
 
     argumentsById.put(argument.id(), argument);
     if(argument instanceof Option<?> option) {
-      optionsByShortName.put(option.shortName(), option);
+      if(option.hasShortName()) {
+        optionsByShortName.put(option.shortName(), option);
+      }
       optionsByLongName.put(option.longName(), option);
     }
   }

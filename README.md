@@ -18,7 +18,7 @@ value.
 This is a standard Maven project:
 
 ```sh
-mvn clean package   # builds target/microcli-2.0.0.jar
+mvn clean package   # builds target/microcli-2.1.0.jar
 mvn test            # runs the test suite
 ```
 
@@ -27,7 +27,7 @@ If JDK 27 is not your default, point Maven and Java at the Homebrew JDK:
 ```sh
 export JAVA_HOME=$(brew --prefix openjdk)
 mvn clean package
-"$JAVA_HOME/bin/java" -jar target/microcli-2.0.0.jar
+"$JAVA_HOME/bin/java" -jar target/microcli-2.1.0.jar
 ```
 
 ## Quick start
@@ -80,7 +80,7 @@ Hello, Ada!
 `Demo` shows all supported argument types and prints the parsed values:
 
 ```sh
-"$JAVA_HOME/bin/java" -jar target/microcli-2.0.0.jar
+"$JAVA_HOME/bin/java" -jar target/microcli-2.1.0.jar
 ```
 
 The demo uses a fixed set of arguments, including `-v`, `--help`, `--count 5`,
@@ -89,7 +89,7 @@ The demo uses a fixed set of arguments, including `-v`, `--help`, `--count 5`,
 The easy variant is available as `EasyDemo`:
 
 ```sh
-"$JAVA_HOME/bin/java" -cp target/microcli-2.0.0.jar \
+"$JAVA_HOME/bin/java" -cp target/microcli-2.1.0.jar \
   cz.utulnykoutek.microcli.easy.EasyDemo
 ```
 
@@ -134,6 +134,18 @@ constructor layouts are:
 A flag has arity `0` and is either present (`true`) or missing (`false`). A
 valued option has arity `1` and consumes the next token as its value.
 Positional parameters are matched in the order in which they were added.
+
+An option can be long-only by passing `null` (or a blank string) as its short
+name:
+
+```java
+var quiet = new Flag("quiet", null, "quiet", "Suppresses output");
+var level = new ValuedOption<>("level", null, "level", "LEVEL",
+    Integer.class, 1, "Log level");
+```
+
+`shortName()` then returns `null`; use `hasShortName()` to check, and `names()`
+to get a human-readable `-s, --long` or `--long` string.
 
 The type token is mandatory. It is used for validation and to choose the
 built-in parser:
@@ -206,34 +218,60 @@ app.parse(new String[]{"--count", "2", "--count", "5"});
 // app.getInt("itemCount") == 5
 ```
 
-Option values are separate tokens. The next token is taken as the value even if
-it starts with `-`:
+By default, option values are separate tokens. The next token is taken as the
+value even if it starts with `-`:
 
 ```java
 app.parse(new String[]{"--count", "-5"});
 // app.getInt("itemCount") == -5
 ```
 
-Options must appear before positional parameters. Once the first positional
-token is seen, all remaining tokens are treated as positional parameters.
+Valued long options also accept the `--name=value` form:
+
+```java
+app.parse(new String[]{"--count=5", "--prefix=a=b"});
+// app.getInt("itemCount") == 5
+// app.getString("prefix") == "a=b"
+```
+
+Short options do not support the `=` form (`-c=5` is not supported).
+
+Parsing is order-independent: options may appear before, between, or after
+positional parameters.
+
+```java
+app.parse(new String[]{"input.txt", "-v", "--count", "5"});
+// the positional parameter is input.txt, -v is set, count is 5
+```
+
+A single `-` is treated as a positional value, which makes the usual
+stdin/stdout convention possible:
+
+```java
+app.parse(new String[]{"-"});   // first positional parameter is "-"
+```
 
 ### Terminate argument parsing with `--`
 
-`--` terminates argument parsing; everything after it is silently ignored. Only
-the registered number of positional parameters may appear before `--`; any
-extra positional argument fails fast:
+`--` ends option parsing. Every token after it is treated as a positional
+parameter, even if it starts with `-`. This is how you pass values that would
+otherwise look like options, including negative positional numbers:
 
 ```java
-app.parse(new String[]{"input.txt", "--", "-v", "ignored"});
-// "-v" and "ignored" are ignored
+var cli = new MicroCLI("test")
+    .add(new PositionalParameter<>("first", "FIRST", String.class, "a", "First"),
+         new PositionalParameter<>("second", "SECOND", String.class, "b", "Second"));
+
+cli.parse(new String[]{"--", "--count", "-5"});
+// first: "--count", second: "-5"
 ```
 
-`--` also stops positional parsing, so any remaining positional parameters keep
-their default values:
+The registered number of positional parameters still applies. Extra positional
+arguments after `--` fail fast with `IllegalArgumentException`.
 
 ```java
-app.parse(new String[]{"Ada", "--", "Bob", "Cid"});
-// only "Ada" is stored in the first positional parameter
+app.parse(new String[]{"Ada", "--", "Bob"});
+// first parameter: Ada, second parameter: Bob (if two are registered)
 ```
 
 ### Read values by ID (or defaults)
@@ -361,9 +399,7 @@ var cli = new EasyCLI("mytool - processes an input file")
     .optString("p", "prefix", "", "Line prefix")
     .posString("input", "Input file");
 
-cli.parse(args);
-
-if (cli.handleHelpAndVersion("mytool 1.0.0")) {
+if (cli.parseAndHandle(args, "mytool 1.0.0")) {
   return;
 }
 
@@ -388,7 +424,7 @@ if (cli.isFlag(NO_COLOR)) System.out.println("color output disabled");
 | `VERSION` | `version` | `-V` | `--version` | Prints version |
 | `DRY_RUN` | `dryRun` | `-n` | `--dry-run` | Runs without making changes |
 | `DEBUG` | `debug` | `-d` | `--debug` | Produces debug output |
-| `NO_COLOR` | `noColor` | `-C` | `--no-color` | Disables colored output |
+| `NO_COLOR` | `noColor` | — | `--no-color` | Disables colored output |
 
 Read them either through the enum or through their ID:
 
@@ -397,9 +433,24 @@ boolean help = cli.isFlag(HELP);
 boolean helpToo = cli.isFlag("help");
 ```
 
-`handleHelpAndVersion(version)` prints usage for `--help`, prints the supplied
-version string for `--version`, and returns `true` if either flag was handled.
-It does not call `System.exit`, so the caller decides whether to continue.
+`parseAndHandle(args, version)` scans the raw arguments before normal parsing.
+If `--help`/`-h` is present and `HELP` is registered, it prints usage and returns
+`true`. If `--version`/`-V` is present and `VERSION` is registered, it prints
+the supplied version string and returns `true`. Otherwise it calls `parse` and
+returns `false`. This means `--help` works even when the other arguments are
+invalid:
+
+```java
+cli.parseAndHandle(new String[]{"--help", "--count", "not-a-number"}, "mytool 1.0.0");
+// prints usage, does not validate --count
+```
+
+The pre-scan stops at `--`, so `-- --help` is treated as a positional value.
+Unregistered standard flags are not handled specially.
+
+`handleHelpAndVersion(version)` is the older post-parse variant: it checks the
+already parsed flags and returns `true` if help or version was handled. It does
+not call `System.exit`, so the caller decides whether to continue.
 
 ### Quick options and positional parameters
 
@@ -410,6 +461,13 @@ cli.optInt("l", "level", 1, "Log level")        // ID: level
    .optDouble("r", "ratio", 1.5, "Ratio")       // ID: ratio
    .optString("p", "prefix", "", "Prefix")      // ID: prefix
    .optPath("o", "outfile", Path.of("out.txt"), "Output file"); // ID: outfile
+```
+
+Omit the short name to create a long-only option:
+
+```java
+cli.optInt("level", 1, "Log level")             // --level only
+   .optString("output", "out.txt", "Output file");
 ```
 
 The parameter name shown in usage is derived from the long name and
@@ -460,7 +518,7 @@ remains available if you need its lower-level API.
 
 - an unknown option (a token starting with `-` that matches no option),
 - a missing value for a valued option,
-- an extra positional argument before `--`,
+- an extra positional argument,
 - a value that cannot be converted to the declared type.
 
 ```java
@@ -477,19 +535,18 @@ app.parse(new String[]{"Ada", "Bob"});
 ## Limitations
 
 - _MicroCLI_ accepts only a fixed number of positional parameters. Extra
-  positional arguments before `--` fail fast.
-- Options must precede positional parameters.
+  positional arguments fail fast, including after `--`.
+- Negative positional numbers must be passed after `--` (or use an option)
+  because a leading `-` otherwise looks like an option.
 - Numeric options and positional parameters need a non-null default value.
   `String` and `Path` arguments may use `null`.
-- Option values must be separate tokens; `--count=5` is not supported.
+- `--count=5` is supported for long options; the short form `-c=5` is not.
 - Combined short flags such as `-abc` are not supported.
 - Short and long option names are matched exactly; `-vv` and `--verbose-extra`
   do not match `-v` / `--verbose`.
 - Flags cannot be negated; a present flag is always `true`.
 - Invalid values of present arguments abort parsing with
   `IllegalArgumentException`.
-- Everything after `--` is ignored, including values that could have been
-  positional parameters.
 
 ## Known bugs
 

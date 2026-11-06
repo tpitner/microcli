@@ -16,6 +16,6 @@ public class Flag extends Option<Boolean> {
   }
 
   @Override public void usage() {
-    System.out.println("-" + shortName() + "\t" + "--" + longName() + "\t" + description());
+    System.out.println(names() + "\t" + description());
   }
 }

@@ -9,7 +9,7 @@ public enum StdFlag {
   VERSION("version", "V", "version", "Prints version"),
   DRY_RUN("dryRun", "n", "dry-run", "Runs without making changes"),
   DEBUG("debug", "d", "debug", "Produces debug output"),
-  NO_COLOR("noColor", "C", "no-color", "Disables colored output");
+  NO_COLOR("noColor", null, "no-color", "Disables colored output");
 
   private final String id;
   private final String shortName;
