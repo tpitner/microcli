@@ -18,7 +18,7 @@ value.
 This is a standard Maven project:
 
 ```sh
-mvn clean package   # builds target/microcli-2.1.0.jar
+mvn clean package   # builds target/microcli-2.2.0.jar
 mvn test            # runs the test suite
 ```
 
@@ -27,7 +27,7 @@ If JDK 27 is not your default, point Maven and Java at the Homebrew JDK:
 ```sh
 export JAVA_HOME=$(brew --prefix openjdk)
 mvn clean package
-"$JAVA_HOME/bin/java" -jar target/microcli-2.1.0.jar
+"$JAVA_HOME/bin/java" -jar target/microcli-2.2.0.jar
 ```
 
 ## Quick start
@@ -80,7 +80,7 @@ Hello, Ada!
 `Demo` shows all supported argument types and prints the parsed values:
 
 ```sh
-"$JAVA_HOME/bin/java" -jar target/microcli-2.1.0.jar
+"$JAVA_HOME/bin/java" -jar target/microcli-2.2.0.jar
 ```
 
 The demo uses a fixed set of arguments, including `-v`, `--help`, `--count 5`,
@@ -89,7 +89,7 @@ The demo uses a fixed set of arguments, including `-v`, `--help`, `--count 5`,
 The easy variant is available as `EasyDemo`:
 
 ```sh
-"$JAVA_HOME/bin/java" -cp target/microcli-2.1.0.jar \
+"$JAVA_HOME/bin/java" -cp target/microcli-2.2.0.jar \
   cz.utulnykoutek.microcli.easy.EasyDemo
 ```
 
@@ -693,6 +693,45 @@ app.parse(new String[]{"--count"});
 app.parse(new String[]{"Ada", "Bob"});
 // IllegalArgumentException: Unexpected positional argument: Bob
 ```
+
+### Printing errors and exit codes
+
+MicroCLI deliberately does not log or print errors itself. The application
+decides how to report them. A common pattern is to print the message to
+`stderr` and exit with a non-zero status:
+
+```java
+public static void main(String[] args) {
+  var app = new MicroCLI("mytool - processes an input file")
+      .add(new Flag("verbose", "v", "verbose", "Produces verbose output"));
+
+  try {
+    app.parse(args);
+  } catch (IllegalArgumentException ex) {
+    System.err.println("mytool: " + ex.getMessage());
+    System.err.println("Try 'mytool --help' for more information.");
+    System.exit(2);
+  }
+
+  // ... use parsed values
+}
+```
+
+With `EasyCLI`, wrap `parseAndHandle` the same way:
+
+```java
+try {
+  if (cli.parseAndHandle(args, "mytool 1.0.0")) {
+    return;
+  }
+} catch (IllegalArgumentException ex) {
+  System.err.println("mytool: " + ex.getMessage());
+  System.exit(2);
+}
+```
+
+Exit code `2` is a common convention for command-line usage errors. The exact
+code is up to the application; `0` should mean success.
 
 ## Limitations
 

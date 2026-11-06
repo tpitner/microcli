@@ -54,7 +54,7 @@ public class EasyDemo {
     };
     System.out.println("Raw arguments " + Arrays.asList(arguments));
 
-    if (cli.parseAndHandle(arguments, "EasyCLI demo 2.1.0")) {
+    if (cli.parseAndHandle(arguments, "EasyCLI demo 2.2.0")) {
       return;
     }
 
