@@ -96,6 +96,17 @@ The easy variant is available as `EasyDemo`:
 It uses its own default arguments when no arguments are supplied; any arguments
 you pass replace those defaults.
 
+For convenience, the executable `easydemo` script in the project root builds the
+classpath and passes all arguments through:
+
+```sh
+./easydemo --help
+./easydemo --no-color --count=2 --add=5
+```
+
+The script prefers the Homebrew JDK 27, then `JAVA_HOME`, then `java` on
+`PATH`. Run `mvn clean package` first so that the jar exists.
+
 ## Usage
 
 ### Create MicroCLI
